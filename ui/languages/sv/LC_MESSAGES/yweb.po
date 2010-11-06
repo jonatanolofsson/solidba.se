@@ -1,0 +1,742 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: yweb\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2009-04-02 21:32+0100\n"
+"PO-Revision-Date: 2009-04-02 21:48+0100\n"
+"Last-Translator: Joakim Gebart <joakim.gebart@jge.se>\n"
+"Language-Team: Webbgruppen <webbgruppen@y.lintek.liu.se>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Swedish\n"
+"X-Poedit-Country: SWEDEN\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-Basepath: /home/kim/Sync/Y-sektionen/yweb\n"
+"X-Poedit-SearchPath-0: admin_pages\n"
+"X-Poedit-SearchPath-1: lib\n"
+"X-Poedit-SearchPath-2: modules\n"
+"X-Poedit-SearchPath-3: templates\n"
+
+#: admin_pages/PageEditor.php:51
+msgid "New static page"
+msgstr "Ny statisk sida"
+
+#: admin_pages/PageEditor.php:61
+#: admin_pages/PageEditor.php:74
+#: modules/Box.php:49
+msgid "Edit page"
+msgstr "Redigera sida"
+
+#: admin_pages/PageEditor.php:111
+msgid "An error has occurred"
+msgstr "Ett fel har inträffat"
+
+#: admin_pages/PageEditor.php:136
+msgid "Your changes have been saved"
+msgstr "Dina ändringar har sparats"
+
+#: admin_pages/PageEditor.php:142
+msgid "Title must not be empty"
+msgstr "Titel får ej vara tom"
+
+#: admin_pages/PageEditor.php:149
+msgid "New page"
+msgstr "Ny sida"
+
+#: admin_pages/PageEditor.php:152
+msgid "Editing page"
+msgstr "Redigerar sida"
+
+#: admin_pages/PageEditor.php:188
+msgid "To menu manager"
+msgstr "Till menyredigeraren"
+
+#: admin_pages/PageEditor.php:189
+msgid "To page"
+msgstr "Till sida"
+
+#: admin_pages/PageEditor.php:193
+msgid "Page settings"
+msgstr "Sidinställningar"
+
+#: admin_pages/PageEditor.php:194
+msgid "Title"
+msgstr "Titel"
+
+#: admin_pages/PageEditor.php:195
+msgid "Alias"
+msgstr "Alias"
+
+#: admin_pages/PageEditor.php:196
+#: admin_pages/AdminGroups.php:264
+#: admin_pages/AdminGroups.php:287
+msgid "Description"
+msgstr "Beskrivning"
+
+#: admin_pages/PageEditor.php:198
+msgid "Template"
+msgstr "Mall"
+
+#: admin_pages/PageEditor.php:199
+msgid "Choose template"
+msgstr "Välj mall"
+
+#: admin_pages/PageEditor.php:199
+msgid "Default"
+msgstr "Standard"
+
+#: admin_pages/PageEditor.php:200
+msgid "Content"
+msgstr "Innehåll"
+
+#: admin_pages/PageEditor.php:201
+msgid "Modify section content"
+msgstr "Redigera innehåll"
+
+#: admin_pages/UInfoFields.php:37
+#: admin_pages/UInfoFields.php:193
+#, fuzzy
+msgid "User information-fields"
+msgstr "Användarinfofält"
+
+#: admin_pages/UInfoFields.php:121
+msgid "Field created"
+msgstr "Fält skapat"
+
+#: admin_pages/UInfoFields.php:123
+msgid "Field updated"
+msgstr "Fält uppdaterat"
+
+#: admin_pages/UInfoFields.php:129
+msgid "Name is already taken. Please try again"
+msgstr "Namnet är redan använt. Försök igen"
+
+#: admin_pages/UInfoFields.php:181
+msgid "Field removed"
+msgstr "Fält borttaget"
+
+#: admin_pages/UInfoFields.php:190
+msgid "Edit field"
+msgstr "Redigera fält"
+
+#: admin_pages/UInfoFields.php:211
+msgid "Create a new user information-field"
+msgstr "Skapa nytt användarinfofält"
+
+#: admin_pages/UInfoFields.php:213
+msgid "Label"
+msgstr "Etikett"
+
+#: admin_pages/UInfoFields.php:213
+msgid "This is what the user will see"
+msgstr "Detta är vad användaren kommer att se"
+
+#: admin_pages/UInfoFields.php:214
+#: admin_pages/AdminGroups.php:263
+#: admin_pages/AdminGroups.php:286
+msgid "Name"
+msgstr "Namn"
+
+#: admin_pages/UInfoFields.php:215
+msgid "Type"
+msgstr "Typ"
+
+#: admin_pages/UInfoFields.php:215
+msgid "Text"
+msgstr "Text"
+
+#: admin_pages/UInfoFields.php:215
+msgid "Image"
+msgstr "Bild"
+
+#: admin_pages/UInfoFields.php:215
+msgid "File"
+msgstr "Fil"
+
+#: admin_pages/UInfoFields.php:216
+#, fuzzy
+msgid "Validation"
+msgstr "Validering"
+
+#: admin_pages/UInfoFields.php:243
+msgid "Show current"
+msgstr "Visa nuvarande"
+
+#: admin_pages/UInfoFields.php:252
+msgid "User information"
+msgstr "Användarinformation"
+
+#: admin_pages/UInfoFields.php:279
+msgid "Invalid image type"
+msgstr "Ogiltig bildtyp"
+
+#: admin_pages/UInfoFields.php:286
+msgid "Invalid file type"
+msgstr "Ogiltig filtyp"
+
+#: admin_pages/UInfoFields.php:300
+#, fuzzy
+msgid "There was a problem with the file upload"
+msgstr "Det uppstod ett problem vid filuppladdningen"
+
+#: admin_pages/UInfoFields.php:332
+#: admin_pages/MenuEditor.php:260
+#: admin_pages/PermissionEditor.php:230
+#: admin_pages/PermissionEditor.php:235
+#: admin_pages/PermissionEditor.php:332
+#: admin_pages/PermissionEditor.php:337
+#: admin_pages/UserEditor.php:191
+#: admin_pages/UserEditor.php:219
+#: admin_pages/AdminGroups.php:248
+#: lib/Folder.php:281
+#: lib/Folder.php:291
+#: lib/Folder.php:325
+msgid "Delete"
+msgstr "Ta bort"
+
+#: admin_pages/UInfoFields.php:334
+msgid "Move up"
+msgstr "Flytta upp"
+
+#: admin_pages/UInfoFields.php:335
+msgid "Move down"
+msgstr "Flytta ned"
+
+#: admin_pages/UInfoFields.php:341
+#, fuzzy
+msgid "Empty"
+msgstr "Tom"
+
+#: admin_pages/UInfoFields.php:345
+msgid "Current fields"
+msgstr "Nuvarande fält"
+
+#: admin_pages/UInfoFields.php:348
+msgid "New"
+msgstr "Ny"
+
+#: admin_pages/ConfigEditor.php:23
+msgid "Configuration"
+msgstr "Konfiguration"
+
+#: admin_pages/ConfigEditor.php:58
+msgid "The configuration was updated"
+msgstr "Konfigurationen uppdaterades"
+
+#: admin_pages/MenuEditor.php:29
+msgid "Edit menu"
+msgstr "Redigera meny"
+
+#: admin_pages/MenuEditor.php:95
+msgid "Section not empty"
+msgstr "Sektionen är inte tom"
+
+#: admin_pages/MenuEditor.php:99
+msgid "Menu item removed"
+msgstr "Menyval borttaget"
+
+#: admin_pages/MenuEditor.php:110
+#: admin_pages/MenuEditor.php:123
+msgid "Alias already in use"
+msgstr "Aliaset används redan"
+
+#: admin_pages/MenuEditor.php:114
+msgid "Section renamed"
+msgstr "Sektionen omdöpt"
+
+#: admin_pages/MenuEditor.php:129
+msgid "New section created"
+msgstr "Ny sektion skapad"
+
+#: admin_pages/MenuEditor.php:170
+#, fuzzy
+msgid "The new page was added successfully"
+msgstr "Den nya sidan skapades utan fel"
+
+#: admin_pages/MenuEditor.php:173
+msgid "Edit the menu"
+msgstr "Redigera menyn"
+
+#: admin_pages/MenuEditor.php:188
+msgid "Edit section"
+msgstr "Redigera sektion"
+
+#: admin_pages/MenuEditor.php:190
+#: admin_pages/MenuEditor.php:195
+#, fuzzy
+msgid "Section name"
+msgstr "Sektionens namn"
+
+#: admin_pages/MenuEditor.php:193
+msgid "New section"
+msgstr "Ny sektion"
+
+#: admin_pages/MenuEditor.php:253
+msgid "Move post up"
+msgstr "Flytta post upp"
+
+#: admin_pages/MenuEditor.php:254
+msgid "Move to after parent"
+msgstr "Flytta till efter föräldern"
+
+#: admin_pages/MenuEditor.php:255
+msgid "Make child to predecessor"
+msgstr �r barn till f�reg�ngare"
+
+#: admin_pages/MenuEditor.php:256
+msgid "Move post down"
+msgstr "Flytta post ner"
+
+#: admin_pages/MenuEditor.php:259
+#: admin_pages/PermissionEditor.php:233
+#: admin_pages/PermissionEditor.php:335
+msgid "Edit"
+msgstr "Redigera"
+
+#: admin_pages/PermissionEditor.php:39
+#: admin_pages/PermissionEditor.php:51
+#: admin_pages/PermissionEditor.php:184
+#: admin_pages/PermissionEditor.php:363
+#: lib/Folder.php:279
+#: lib/Folder.php:290
+#: lib/Folder.php:324
+#: modules/Box.php:51
+msgid "Edit permissions"
+msgstr "Redigera behörigheter"
+
+#: admin_pages/PermissionEditor.php:125
+msgid "Permission overview"
+msgstr "Översikt behörigheter"
+
+#: admin_pages/PermissionEditor.php:142
+#: admin_pages/PermissionEditor.php:174
+#: admin_pages/PermissionEditor.php:221
+msgid "Privileges updated"
+msgstr "Behörigheter uppdaterades"
+
+#: admin_pages/PermissionEditor.php:152
+msgid "New privilege created"
+msgstr "Ny behörighet skapades"
+
+#: admin_pages/PermissionEditor.php:162
+#: admin_pages/PermissionEditor.php:208
+msgid "Privilege deleted"
+msgstr "Behörighet togs bort"
+
+#: admin_pages/PermissionEditor.php:182
+msgid "Edit user permissions"
+msgstr "Ändra användarbehörigheter"
+
+#: admin_pages/PermissionEditor.php:187
+msgid "Permissions"
+msgstr "Behörigheter"
+
+#: admin_pages/PermissionEditor.php:225
+#: admin_pages/PermissionEditor.php:273
+msgid "Back to overview"
+msgstr ""
+
+#: admin_pages/PermissionEditor.php:227
+msgid "Permissions for"
+msgstr "Behörigheter för"
+
+#: admin_pages/PermissionEditor.php:231
+msgid "Resource"
+msgstr "Resurs"
+
+#: admin_pages/PermissionEditor.php:232
+#: admin_pages/PermissionEditor.php:334
+msgid "Read"
+msgstr "Läsa"
+
+#: admin_pages/PermissionEditor.php:234
+#: admin_pages/PermissionEditor.php:336
+msgid "Edit privileges"
+msgstr "Redigera behörigheter"
+
+#: admin_pages/PermissionEditor.php:257
+#: admin_pages/PermissionEditor.php:357
+msgid "Update"
+msgstr "Uppdatera"
+
+#: admin_pages/PermissionEditor.php:264
+msgid "No permission overview available"
+msgstr "Ingen behörighetsöversikt tillgänglig"
+
+#: admin_pages/PermissionEditor.php:275
+msgid "User permissions"
+msgstr "Användarbehörigheter"
+
+#: admin_pages/PermissionEditor.php:276
+msgid "May install new modules"
+msgstr "Får installera nya moduler"
+
+#: admin_pages/PermissionEditor.php:288
+#: admin_pages/UserEditor.php:134
+#: admin_pages/AdminGroups.php:183
+#: admin_pages/AdminGroups.php:283
+msgid "Back"
+msgstr "Tillbaka"
+
+#: admin_pages/PermissionEditor.php:289
+msgid "To overview"
+msgstr "Till översikten"
+
+#: admin_pages/PermissionEditor.php:295
+msgid "User permission"
+msgstr "Användarbehörighet"
+
+#: admin_pages/PermissionEditor.php:299
+#: admin_pages/UserEditor.php:157
+#: admin_pages/AdminGroups.php:156
+msgid "Find user"
+msgstr "Sök användare"
+
+#: admin_pages/PermissionEditor.php:300
+#: admin_pages/UserEditor.php:158
+#: admin_pages/AdminGroups.php:157
+msgid "Search"
+msgstr "Sök"
+
+#: admin_pages/PermissionEditor.php:304
+msgid "Group permission"
+msgstr "Gruppbehörighet"
+
+#: admin_pages/PermissionEditor.php:307
+#: admin_pages/AdminGroups.php:164
+msgid "Choose group"
+msgstr "Välj grupp"
+
+#: admin_pages/PermissionEditor.php:308
+#: admin_pages/AdminGroups.php:165
+msgid "Add"
+msgstr "Lägg till"
+
+#: admin_pages/PermissionEditor.php:329
+msgid "s"
+msgstr ""
+
+#: admin_pages/PermissionEditor.php:333
+msgid "User/group"
+msgstr "Användare/grupp"
+
+#: admin_pages/PermissionEditor.php:345
+msgid "Delete permission"
+msgstr "Ta bort behörighet"
+
+#: admin_pages/PermissionEditor.php:380
+#: admin_pages/UserEditor.php:177
+#: admin_pages/AdminGroups.php:200
+msgid "No results"
+msgstr "Inga resultat"
+
+#: admin_pages/PermissionEditor.php:384
+#: admin_pages/UserEditor.php:181
+#: admin_pages/AdminGroups.php:204
+msgid "Search results"
+msgstr "Sökresultat"
+
+#: admin_pages/PermissionEditor.php:390
+msgid "Add privileges for this user"
+msgstr "Lägg till privilegier för denna användare"
+
+#: admin_pages/PermissionEditor.php:420
+msgid "Overview permissions for"
+msgstr "Översikt behörigheter för"
+
+#: admin_pages/PermissionEditor.php:421
+msgid "Edit permissions for"
+msgstr "Redigera behörigheter för"
+
+#: admin_pages/PermissionEditor.php:422
+msgid "Go to"
+msgstr "Gå till"
+
+#: admin_pages/UserEditor.php:23
+msgid "Users"
+msgstr "Användare"
+
+#: admin_pages/UserEditor.php:60
+msgid "Username must not be empty"
+msgstr "Användarnamn får ej vara tomt"
+
+#: admin_pages/UserEditor.php:64
+msgid "Username is already in use"
+msgstr "Användarnamnet används redan"
+
+#: admin_pages/UserEditor.php:81
+msgid "The passwords doesn't match. Try again"
+msgstr "Lösenorden matchade inte, var god försök igen"
+
+#: admin_pages/UserEditor.php:87
+msgid "A new user was created"
+msgstr "En ny användare skapades"
+
+#: admin_pages/UserEditor.php:88
+msgid "Your changes were saved"
+msgstr "Dina ändringar sparades"
+
+#: admin_pages/UserEditor.php:98
+msgid "User was deleted"
+msgstr "Användaren raderades"
+
+#: admin_pages/UserEditor.php:105
+msgid "New user"
+msgstr "Ny användare"
+
+#: admin_pages/UserEditor.php:105
+#: admin_pages/UserEditor.php:192
+#: admin_pages/UserEditor.php:219
+msgid "Edit user"
+msgstr "Redigera användare"
+
+#: admin_pages/UserEditor.php:135
+msgid "Login information"
+msgstr "Inloggningsinformation"
+
+#: admin_pages/UserEditor.php:137
+#: modules/Box.php:70
+msgid "Username"
+msgstr "Användarnamn"
+
+#: admin_pages/UserEditor.php:138
+#: modules/Box.php:72
+msgid "Password"
+msgstr "Lösenord"
+
+#: admin_pages/UserEditor.php:139
+msgid "Password again"
+msgstr "Upprepa lösenordet"
+
+#: admin_pages/UserEditor.php:153
+#: admin_pages/AdminGroups.php:152
+msgid "Add user"
+msgstr "Lägg till användare"
+
+#: admin_pages/AdminGroups.php:24
+#: admin_pages/AdminGroups.php:113
+msgid "Groups"
+msgstr "Grupper"
+
+#: admin_pages/AdminGroups.php:61
+msgid "A new group was created"
+msgstr "En ny grupp skapades"
+
+#: admin_pages/AdminGroups.php:64
+#: admin_pages/AdminGroups.php:96
+msgid "Group name empty. Try again"
+msgstr "Gruppnamnet tomt, försök igen."
+
+#: admin_pages/AdminGroups.php:67
+msgid "Group name busy. Try again"
+msgstr "Gruppnamnet används redan, försök igen."
+
+#: admin_pages/AdminGroups.php:78
+msgid "The group was deleted and all privileges were removed"
+msgstr "Gruppen raderades och alla privilegier togs bort"
+
+#: admin_pages/AdminGroups.php:93
+msgid "Your settings were saved"
+msgstr "Dina inställningar sparades"
+
+#: admin_pages/AdminGroups.php:99
+msgid "Group name busy"
+msgstr "Gruppnamnet används redan"
+
+#: admin_pages/AdminGroups.php:108
+msgid "Members of"
+msgstr "Medlemmar av"
+
+#: admin_pages/AdminGroups.php:135
+msgid "Group added as subgroup"
+msgstr "Gruppen lades till som undergrupp"
+
+#: admin_pages/AdminGroups.php:137
+msgid "User added to group"
+msgstr "Användaren lades till gruppen"
+
+#: admin_pages/AdminGroups.php:138
+msgid "Action failed"
+msgstr "Operationen misslyckades"
+
+#: admin_pages/AdminGroups.php:141
+msgid "User removed from group"
+msgstr "Användaren borttagen från gruppen"
+
+#: admin_pages/AdminGroups.php:161
+msgid "Group"
+msgstr "Grupp"
+
+#: admin_pages/AdminGroups.php:173
+msgid "Remove user from group"
+msgstr "Ta bort användaren från gruppen"
+
+#: admin_pages/AdminGroups.php:176
+msgid "Member users"
+msgstr "Medlemmar"
+
+#: admin_pages/AdminGroups.php:177
+msgid "Subgroups"
+msgstr "Undergrupper"
+
+#: admin_pages/AdminGroups.php:180
+msgid "Additionally, this group is a subgroup to the following groups: "
+msgstr "Denna grupp är en undergrupp i följande grupper:"
+
+#: admin_pages/AdminGroups.php:210
+msgid "Add user to group"
+msgstr "Lägg till användare till grupp"
+
+#: admin_pages/AdminGroups.php:244
+msgid "Manage members"
+msgstr "Hantera medlemmar"
+
+#: admin_pages/AdminGroups.php:245
+msgid "Edit group"
+msgstr "Redigera grupp"
+
+#: admin_pages/AdminGroups.php:247
+msgid "This group is locked"
+msgstr "Denna grupp är låst"
+
+#: admin_pages/AdminGroups.php:257
+msgid "Select group"
+msgstr "Välj grupp"
+
+#: admin_pages/AdminGroups.php:260
+msgid "Create group"
+msgstr "Skapa grupp"
+
+#: admin_pages/AdminGroups.php:262
+#: admin_pages/AdminGroups.php:284
+msgid "New group"
+msgstr "Ny grupp"
+
+#: lib/User.php:57
+msgid "Minutes of inactivity before user get's logged out, 0 meaning no limit."
+msgstr "Minuter inaktivitet innan användaren loggas ut, 0 betyder ingen gräns."
+
+#: lib/Folder.php:99
+msgid "Extraction of ´%´ failed"
+msgstr "Misslyckades att packa upp ´%´"
+
+#: lib/Folder.php:107
+msgid "Upload of file ´%´ failed"
+msgstr "Misslyckades med att ladda upp filen ´%´"
+
+#: lib/Folder.php:112
+#, fuzzy
+msgid "Your file(s) were uploaded"
+msgstr "Din(-a) fil(-er) laddades upp"
+
+#: lib/Folder.php:116
+#, fuzzy
+msgid "Your file(s) were uploaded and extracted"
+msgstr "Din(-a) fil(-er) laddades upp och packades upp"
+
+#: lib/Folder.php:133
+msgid "Upload files to "
+msgstr "Ladda upp filer till"
+
+#: lib/Folder.php:136
+msgid "Create new subfolder"
+msgstr "Skapa ny undermapp"
+
+#: lib/Folder.php:139
+msgid "Overview"
+msgstr "Översikt"
+
+#: lib/Folder.php:173
+msgid "Create"
+msgstr "Skapa"
+
+#: lib/Folder.php:174
+msgid "Back to folder"
+msgstr "Tillbaka till mapp"
+
+#: lib/Folder.php:175
+msgid "New folder"
+msgstr "Ny mapp"
+
+#: lib/Folder.php:176
+msgid "Folder name"
+msgstr "Mappnamn"
+
+#: lib/Folder.php:186
+msgid "Select files"
+msgstr "Välj filer"
+
+#: lib/Folder.php:187
+msgid "File to upload"
+msgstr "Fil att ladda upp"
+
+#: lib/Folder.php:188
+msgid "Uncompress compressed files"
+msgstr "Packa upp komprimerade arkiv"
+
+#: lib/Folder.php:276
+msgid "Root folder"
+msgstr "Toppmapp"
+
+#: lib/Folder.php:280
+#: lib/Folder.php:292
+msgid "Create subfolder"
+msgstr "Skapa undermapp"
+
+#: lib/Folder.php:282
+#: lib/Folder.php:293
+msgid "Upload to folder"
+msgstr "Ladda upp till mapp"
+
+#: lib/Folder.php:283
+#: lib/Folder.php:294
+#: lib/Folder.php:326
+msgid "Download"
+msgstr "Ladda ner"
+
+#: lib/Folder.php:289
+msgid "Open folder"
+msgstr "Öppna mapp"
+
+#: lib/Form.php:86
+msgid "Submit"
+msgstr "Skicka"
+
+#: lib/Form.php:334
+msgid "Select editor"
+msgstr "Välj editor"
+
+#: lib/Form.php:335
+msgid "Simple"
+msgstr ""
+
+#: lib/Form.php:336
+msgid "Advanced"
+msgstr "Avancerad"
+
+#: lib/Form.php:337
+msgid "Off"
+msgstr "Av"
+
+#: modules/Box.php:35
+msgid "Administrate"
+msgstr "Administrera"
+
+#: modules/Box.php:68
+#: modules/Box.php:74
+msgid "Login"
+msgstr "Logga in"
+
+#: modules/Box.php:85
+msgid "User"
+msgstr "Användare"
+
+#: modules/Box.php:88
+msgid "Logout"
+msgstr "Logga ut"
+
+#: templates/solidbase/default.php:88
+msgid "Administration area"
+msgstr "Administrationsarea"
+

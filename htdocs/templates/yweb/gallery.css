@@ -1,0 +1,85 @@
+/**
+ * @author Kalle Karlsson [kakar]
+ * @version 1.0
+ * @package Content
+ *
+ * Gallery css (Arkiv-Y)
+ */
+
+.gallery a, .gallery a:hover{
+	display: inline-block;
+	width: 125px;
+	height: 125px;
+	line-height: 125px;
+	vertical-align: middle;
+	text-align: center;
+	margin-right: 10px;
+	background: none;
+}
+
+.gallery a img{
+	vertical-align: middle;
+	position: relative;
+}
+
+.gallery a span.text{
+	display: block;
+	color: #323232;
+	position: relative;
+	margin-top: -20px;
+	line-height: normal;
+	text-align: center;
+}
+
+.title a {
+	background: none!important;
+	color: #999!important;
+}
+
+.title a:hover{
+	color: #323232!important;
+	text-decoration: underline;
+}
+
+#subnav ul ul {
+	display: none;
+}
+
+/*----- PREV NEXT -----*/
+.prevnext li{
+  float:left;
+  width:33px;
+  height:33px;
+  text-indent:-9999px;
+  background:#e5e5e5 URL(/images/prevnext.png) no-repeat 0 0;
+  margin-right:2px;
+}
+ 
+.prevnext li a{
+  display:block;
+  width:33px;
+  height:33px;
+  background:#b1b1b1 URL(/images/prevnext.png) no-repeat 0 0;
+  float:left;
+}
+ 
+ 
+.prevnext li a:hover{
+  background-color:#FFCC00;
+}
+ 
+ 
+.prevnext li.next, .prevnext li.next a{
+  background-position:-37px 0;
+}
+ 
+.prevnext .image_no{
+  display:block;
+  clear:both;
+  padding-top:10px;
+  font-weight:bold;
+  float:none;
+  text-indent:0;
+  width:auto;
+  background:none;
+}

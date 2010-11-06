@@ -1,0 +1,2 @@
+test dinmamma
+<?php phpinfo(); ?>

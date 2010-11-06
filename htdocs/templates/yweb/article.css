@@ -1,0 +1,194 @@
+@charset "UTF-8";
+/** 
+ * @author Kalle Karlsson (kakar)
+ * @version 0.1
+ * @pageage Templates
+ *
+ * Yweb Tempalate Stylesheet
+ */
+
+
+/*----- Article -----*/
+.articleHolder {
+	position: relative;
+	border-bottom:1px solid #b1b1b1;
+	margin-bottom: 25px;
+}
+
+.articleImg {
+	text-align: center;
+}
+
+.articleInfo {
+	display: inline-block;
+	clear: both;
+	width: 100%;
+	padding: 2px 0;
+	margin-bottom: 10px;
+	background-color: #ddd;
+	border-radius: 3px;
+}
+
+.articleInfo .author {
+	float: left;
+	padding-left: 8px;
+	
+}
+.articleInfo .category {
+	float: right;
+	padding-right: 8px;
+}
+
+.articleInfo a { color: #323232 !important; }
+.articleInfo a:hover { color: #fff !important; }
+
+.read_more a {
+/* 	font-weight:bold;  */
+	font-size: 9pt;
+	text-transform: uppercase;
+	color:#000!important; 
+	margin-right:10px;
+	background-image:url('images/ICN_kommentarer.jpg');
+	background-position:right 3px;
+	padding-right:10px !important;
+	background-repeat: no-repeat;
+}
+.read_more a:hover { 
+    color:#fff!important; 
+/*     background-image:none; */
+}
+
+.articleInfo .edit {
+	float: right;
+}
+.articleInfo .edit a {
+	margin: 0 8px;
+}
+
+.read_more .edit {
+	background: none;
+	padding: 0 !important;
+}
+
+
+.articleAdmin {
+	display:none;
+	position: absolute;
+	top:0;
+	right: 0px;
+	-webkit-border-radius: 15px;
+	-moz-border-radius: 15px;
+	background-color: #666;
+	padding: 5px 10px;
+	opacity: 0.9;
+}
+
+.popbox ul, .toolbox ul {list-style: none;}
+.popbox li, .toolbox li {display: inline-block; vertical-align: top;}
+.popbox a:hover, .toolbox a:hover {background: none;}
+.popbox a span, .toolbox a span {
+	display: block;
+	margin-top: 3px;
+	max-width: 35px;
+	text-align: center;
+	font-size: 7pt;
+	color: #fff;
+	white-space: normal;
+}
+
+
+/* ----- OVERLAY BOX ----- */
+.overlay_box {
+	-webkit-box-shadow: rgba(0,0,0,0.3) 0 5px 8px;
+	background: rgba(0,0,0,0.85);
+	border: 2px solid #fff;
+	border-radius: 8px;
+	padding: 4px;
+	color: #fff;
+}
+
+.popbox {
+	position: absolute;
+	overflow: auto;
+	clear: both;
+	margin: -104px 0 0 -20px !important;
+	background: transparent !important;
+	color: #fff !important;
+	height: auto !important;
+	width: auto !important;
+	border: none !important;
+	-webkit-border-image: url("images/popbox.png") 12 16 28 50 / 12px 16px 28px 50px repeat !important;
+	z-index: 200;
+	padding: 0;
+}
+
+.down {
+	margin: 0 0 0 -20px !important;
+	-webkit-border-image: url("images/popbox_down.png") 25 16 17 50 / 25px 16px 17px 50px repeat !important;
+}
+
+.popbox .loader {
+/* 	background: url(images/spinner_dark.gif) center center no-repeat; */
+	background: transparent;
+/* 	width: 30px; */
+/* 	height: 30px; */
+/* 	margin: 5px 0px 5px 0px; */
+	margin-left: -10px !important;
+}
+
+
+/*
+<div class="popbox2">
+	<div class="popbox2-body">
+		<div class="popbox2-content">
+		</div>
+	</div>
+	<div class="popbox2-arrow">
+	</div>
+</div>
+*/
+
+.toolbox {
+	position: absolute;
+	z-index: 999;
+	display: none;
+/* 	opacity: 0; */
+}
+.toolbox-body {
+	position: absolute;
+	bottom: 6px;
+	z-index: 999;
+}
+.toolbox-content {
+	position: relative;
+	padding: 5px;
+	color: #fff;
+/* 	width: auto; */
+	white-space: nowrap;
+/* 	background-color: #000; */
+	background-color: rgba(0,0,0,0.8);
+	border: 1px solid #ccc;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-moz-box-shadow: 0 2px 3px rgba(0,0,0,0.5);
+	-webkit-box-shadow: 0 2px 3px rgba(0,0,0,0.5);
+}
+.toolbox-arrow {
+	position: absolute;
+	z-index: 1000;
+	bottom: 0;
+	width: 0;
+	height: 0;
+	vertical-align: top;
+	border: 1px solid transparent;
+	border-width: 7px 7px 0 7px;
+/* 	border-top-color: #000; */
+	border-top-color: rgba(0,0,0,0.7);
+}
+
+.toolbox-down .toolbox-body { bottom:auto; top: 6px; }
+.toolbox-down .toolbox-arrow {
+	top: 0;
+	vertical-align: top;
+	border-width: 0px 5px 5px 5px;
+}

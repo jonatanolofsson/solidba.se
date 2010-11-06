@@ -1,0 +1,123 @@
+body, html {
+margin: 0;
+padding: 0;
+font-size:90%;
+background:#FFF url(/templates/yweb/images/bg_gradient.jpg) 0 0 repeat-x;
+}
+a {color: #323232;}
+a:hover {text-decoration: none;}
+a img {border: 0;}
+#content {
+  background: #fff;
+  width: 95%;
+  margin: 2%;
+  border: 2px solid #A2B9D1;
+  font-size: 0.8em;
+}
+
+#flashes {position: absolute; height: 100px;overflow: auto;}
+.flash {width: 70%; margin: 1em 0 -2em 15%; background: #46e url(/templates/defadmin/images/wbggrad_50.png) 0 50%; border: 1px solid #555; position: absolute; bottom: 30px; left: 0; font-size: 80%;}
+.flash li {background-repeat: no-repeat; background-image: url(/3rdParty/icons/large/documentinfo-32.png); list-style: none; padding: 0.6em 40px;}
+.flash ul {margin: 0;}
+.flash_type_warning {background-color: #e44;}
+.flash_type_warning li {background-image: url(/3rdParty/icons/large/agt_action_fail-32.png);}
+.flash_type_confirmation {background-color: #4a4;}
+.flash_type_confirmation li {background-image: url(/3rdParty/icons/large/agt_action_success-32.png);}
+
+img.icon {
+vertical-align: middle;
+}
+.fixed-width {
+  display: table-cell;
+  width: 250px;
+}
+.tools {
+  display: table-cell;
+  width: 200px;
+  text-align: right;
+  overflow-x: hidden;
+}
+.tools img {
+  padding: 0 3px;
+  border: solid #ccc;
+  border-width: 0 1px 0 0;
+  position: relative;
+  right: -3px;
+}
+/*Forms*/
+input.submit, input.login {
+  width: 100px;
+  font-size: 10px;
+}
+input.text, textarea {
+  width: 300px;
+  margin: 1px;
+  border: 1px solid #aaa;
+}
+label {
+  float: left;
+  width: 100px;
+}
+.set li {
+  list-style: none;
+}
+
+/*Fieldsets*/
+fieldset {
+  border: 1px solid #777;
+}
+fieldset legend {
+  background: #a3bCc5;
+  -moz-border-radius: 8px;
+  border: 1px solid #777;
+}
+form fieldset ol, form fieldset ul {
+  padding: 0;
+  margin: 0;
+}
+
+/*Lists*/
+.flul, .list {
+  padding: 0;
+  margin: 10px;
+  border: solid #def;
+  border-width: 0 1px 1px 0;
+}
+.flul ul, .flul ol {
+  margin: 0;
+  padding: 0 0 0 15px;
+}
+.flul li, .list li {
+  list-style: none;
+}
+li.fletter {
+  font-weight: bold;
+}
+li.fletter li {
+  font-weight: normal;
+}
+.flul li.even,.list li.even {
+  background: #9CADB3;
+}
+.flul li.odd,.list li.odd {
+  background: #CEDADF;
+}
+
+.nav {
+  background: #cde;
+  border: solid orange;
+  border-width: 1px 0;
+  margin: 0 0 5px 0;
+}
+.nav a {
+  margin: 0 0 0 20px;
+  color: #000;
+}
+.evenform {
+  background: #EFF6FF;
+  border: solid #99B2CC;
+  border-width: 1px 0;
+}
+.oddform, .evenform {
+  padding: 5px 0;
+}

@@ -1,0 +1,1 @@
+bunzip2 -c yweb-2010-04-26-transfer.sql.bz2 | mysql -p -u yweb -D yweb

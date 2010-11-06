@@ -1,0 +1,97 @@
+<html>
+<head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>Rad Upload Lite</title>
+</head>
+<body>
+        <table border="0" valign="middle" align="center" cellpadding="15">
+            <tr><td colspan="2" align="center"><h2 style="color:#000033">Rad Upload</h2></td></tr>
+            <tr>
+             <td width="290" valign="top">
+                   <p>Thank you for downloading Rad Upload Lite</p>
+
+                   <p>This web page will ask your browser to automatically install the Java plug-in
+                    (if the correct version is not already installed).</p>
+
+	               <p>you can integrate the javascript included in this page in your own web site for
+	               use with Rad Upload</p>
+        
+	               <p>If your system does not support this auto installation procedure you may need to
+	               visit <a href="http://java.sun.com/">java.sun.com</a> and download the latest version of Java.</p>
+             </td>
+             <td><div style="border: 1px dotted #336699; padding:4px">
+
+<script language="javascript" src="embed.js"></script>
+<script language="javascript">
+  var _info = navigator.userAgent;
+  var ie = (_info.indexOf("MSIE") > 0);
+  var win = (_info.indexOf("Win") > 0);
+
+    if(win)
+    {
+
+        if(ie)
+        {
+            IELoader();
+        }
+		else
+		{
+                document.writeln('<object type="application/x-java-applet;version=1.4.1"');
+                document.writeln('width= "290" height= "290"  >');
+                document.writeln('<param name="archive" value="dndlite.jar">');
+                document.writeln('<param name="code" value="com.radinks.dnd.DNDAppletLite">');
+                document.writeln('<param name="name" value="Rad Upload Lite">');
+        }
+    }
+    else
+    {
+            /* mac and linux */
+            document.writeln('<applet ');
+            document.writeln('                      archive  = "dndlite.jar"');
+            document.writeln('                      code     = "com.radinks.dnd.DNDAppletLite"');
+            document.writeln('                      name     = "Rad Upload Lite"');
+            document.writeln('                      hspace   = "0"');
+            document.writeln('                      vspace   = "0" MAYSCRIPT="yes"');
+            document.writeln('                      width	 = "290"');
+            document.writeln('                      height	 = "290"');
+            document.writeln('                      align	 = "middle">');
+	}
+
+ //-->
+</script>
+    <!-- BEGIN APPLET CONFIGURATION PARAMETERS -->
+            <param name="max_upload" value="2000">
+            <!-- size in kilobytes (takes effect only in Rad Upload Plus) -->
+
+            <param name = "url" value = "http://67.131.250.110/upload.php">
+            <!-- you can pass additional parameters by adding them to the url-->
+            <!-- to upload to an ftp server instead of a web server, please specify a url
+                in the following format:
+                ftp://username:password@ftp.myserver.com
+                        replacing username, password and ftp.myserver.com with corresponding entries for
+                        your site -->
+            <param name = "message" value="Drop your files here.<br>This message can be changed by editing the applet.php file. Check for the message property.">
+            <!-- edit the above line to customize your applet's display -->
+    <!-- END APPLET CONFIGURATION PARAMETERS -->
+
+<script language="javascript">
+ <!--
+ 	if(win)
+	{
+		document.writeln('</object>');
+	}
+	else
+	{
+		document.writeln('</applet>');
+        }
+ //-->
+</script>
+                </div>
+          </td>
+   </tr>
+  </table>
+  <p>&nbsp;</p>
+  <p align="center">A product of <a href="http://www.radinks.com/?dn">Rad Inks</a></p>
+ </body>
+</html>
+

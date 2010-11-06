@@ -1,0 +1,142 @@
+/**
+ * @author Kalle Karlsso [kakar]
+ * @version 1.0
+ * Booking stylesheet
+ */
+
+table.calendar {
+/* 	width: 0px; */
+	table-layout: auto;
+	text-align: center;
+}
+
+table.calendar thead {
+/* 	border: 2px solid #fff; */
+}
+
+table.calendar tbody {
+	border-top: 1px solid #999;
+}
+
+table.calendar td {
+	width: 50px;
+	height: 20px;
+	font-size: 1.1em;
+	overflow: hidden;
+}
+
+table.calendar tbody td, table.calendar tbody td:hover {
+/* 	border: 1px solid #323232; */
+	background: none;
+}
+
+table.calendar tbody th a, table.calendar tbody th a:hover, table.calendar thead th a, table.calendar thead th a:hover{
+	color: #323232;
+	background: none;
+}
+
+table.calendar thead td a {
+/* 	font-size: 1.1em; */
+	color: #323232;
+	display: inline-block;
+}
+
+table.calendar thead td a:hover {
+/* 	font-size: 1.1em; */
+	background: none;
+}
+
+table.calendar tbody td a {
+	display: block;
+	color: #323232;
+	background: none;
+}
+
+.cal_free, .cal_reserved, .cal_booked, .cal_past, .cal_today, .cal_future {
+	border: 1px solid #323232;
+/* 	-moz-border-radius: 2px; */
+/* 	-webkit-border-radius: 2px; */
+}
+
+.cal_free:hover, .cal_reserved:hover, .cal_booked:hover, .cal_past:hover, .cal_today:hover, .cal_future:hover {
+	background: #ffdd00!important;
+}
+
+.cal_future {
+	background: #f2f2f2!important;
+/* 	background: #5dff57!important; */
+}
+
+.cal_halfday {
+	background: #ff2300!important;
+}
+
+.cal_wholeday {
+	background: #ff2300!important;
+}
+
+.cal_reserved {
+	background: #ddd;
+}
+
+.cal_free {
+	background: #5dff57; 
+}
+
+.cal_booked {
+	background: #f00;
+}
+
+.cal_booked a {
+	color: #fff;
+}
+
+.cal_past {
+	background: #f2f2f2!important;
+	color: #888!important;
+}
+
+.cal_past a {
+	color: #888!important;
+}
+
+.cal_today {
+/* 	border-width: 2px!important; */
+	background: #fff!important;
+}
+
+/*
+.cal_free a, .cal_booked a, .cal_free a:hover, .cal_booked a:hover, .cal_past a, .cal_past a:hover {
+	display: block;
+	background: none!important;
+	color:#323232;
+}
+*/
+
+table.cal_viewdate {
+	table-layout: fixed;
+}
+
+table.cal_viewdate a {
+	color: #323232;
+	background: none;
+}
+
+table.cal_viewdate th a, table.cal_viewdate th a:hover {
+	margin-right: 10px;
+}
+
+table.cal_viewdate td {
+	width: 15px;
+	text-align: center;
+}
+
+table.cal_viewdate td a, table.cal_viewdate td a:hover {
+	background: none;
+	display: block;
+}
+
+.nav a {
+	background: none;
+	color: #323232;
+}

@@ -1,0 +1,114 @@
+body, html {
+margin: 0;padding: 0;font-size:90%;
+background:#EFF6FF url(/templates/defadmin/images/grasstile.jpg) repeat-x fixed;background-position:bottom;
+}
+#header {height: 100px;width: 100%;margin:0;padding:0;font-family: Courier, monospace;text-align: right;
+	background:#369 url(/templates/defadmin/images/wbggrad2.png) 0 10% repeat-x;
+	border-bottom:2px solid orange;}
+#header h1 {margin:0; text-align:right;font-size:5em;color:#444;font-weight:normal;}
+#header h1 a {color:inherit;text-decoration:none;}
+
+a {color: #000;}
+a:hover {text-decoration: none;}
+a img {border: 0;}
+#leftBar {width: 18%;float: left;height: 100%;padding: 1%;border-right: 1px solid #777;font-size: 0.8em;}
+.login {text-align: center;}
+.login label {text-align: left;}
+.login input.text {width: 80%;text-align: left;}
+
+.admin_menu fieldset {background: #cde;}
+.menu a {display: block;color: #222;font-size: 0.9em;text-decoration: none;}
+.menu a:hover {background: #def;}
+.menu li {list-style-type: none;padding: 0;margin: 0;}
+.menu {padding: 0;}
+.menu ul {padding: 0 0 0 1em;}
+
+
+#flashes {position: absolute; height: 100px;overflow: auto;}
+.flash {width: 50%; margin: 1em 0 -2em 35%; background: #46e url(/templates/defadmin/images/wbggrad_50.png) 0 50%; border: 1px solid #555;}
+.flash li {background-repeat: no-repeat; background-image: url(/3rdParty/icons/large/documentinfo-32.png); list-style: none; padding: 0.6em 40px;}
+.flash ul {margin: 0;}
+.flash_type_warning {background-color: #e44;}
+.flash_type_warning li {background-image: url(/3rdParty/icons/large/agt_action_fail-32.png);}
+.flash_type_confirmation {background-color: #4a4;}
+.flash_type_confirmation li {background-image: url(/3rdParty/icons/large/agt_action_success-32.png);}
+
+#content {
+	background: #fff;
+	width: 70%;
+	float: right;
+	margin: 4%;
+	border: 2px solid #A2B9D1;
+	border-left-width: 1em;
+	font-size: 0.8em;
+}
+
+img.icon {vertical-align: middle;}
+
+ins {background: lightgreen;}
+del {background: pink;}
+.revlegend {text-align: right;display:inline;margin: 0 0 0 45px;}
+.revlegend ins,.revlegend del {margin: 0 5px;}
+
+.fixed-width {display: inline-block;width: 250px;}
+.tools {display: inline-block;text-align: right;overflow-x: hidden;vertical-align: middle}
+.tools img {padding: 0 3px;border: solid #ccc;border-width: 0 0 0 1px;position: relative;left: -3px;}
+
+
+/*Forms*/
+label {font-weight: bold;float:left;width:150px;vertical-align:top;}
+label.minicheck {float:none;width:auto;vertical-align:3px;}
+input.submit, input.login {width: 100px;font-size: 10px;}
+input.password, input.checkbox, input.text, textarea, select, input.file {width: 300px;margin: 1px;border: 1px solid #aaa;vertical-align:top;}
+input.password {border-style: dotted;}
+input.small {width: 50px;font-size: 0.8em;border:1px solid black;margin: 0 1px;}
+
+.evenform {background: #EFF6FF;border: solid #99B2CC;border-width: 1px 0;}
+.oddform, .evenform {padding: 5px 0;}
+.radioset img   {width:100%;border:1px solid #ccc;}
+
+span.property {font-weight:bold;width:15%;display: inline-block;}
+span.value {width:50%;display:inline-block;}
+span.description {font-style: italic; margin:0 0 0 1em;}
+
+/*Fieldsets*/
+fieldset {border: 1px solid #777;margin: 1em;}
+fieldset legend {border: solid orange;border-width: 0 2px;padding: 2px 7px;}
+fieldset ol, fieldset ul {padding: 0;margin: 0;}
+
+/*Lists*/
+.set li, .list {list-style: none;}
+.flul, .list {padding: 0;margin: 10px;border: solid orange;border-width: 0 1px 1px 0;}
+.flul ul, .flul ol {margin: 0;padding: 0 0 0 15px;list-style: none;}
+li.fletter {font-weight: bold;}
+li.fletter li {font-weight: normal;}
+.flul li.even,.list li.even, tr.even {background: #def;}
+table.log {width: 100%;}
+span.author h3, span.from h3, span.recipients h3, span.subject h3 {display: inline;}
+span.author {width: 80px;display: inline-block;}
+span.from, span.recipients {width: 100px;display: inline-block;}
+span.subject {width: 200px; display: inline-block;}
+
+.urgent {background: pink;}
+
+.menuedit {position: relative;overflow-x: hidden;}
+.menuedit ol {margin: 1em;padding: 0;border: solid #58b;border-width: 0 0 0 1px;}
+.menuedit ol ol {padding: 1px;margin: 0 1em;width: 100%}
+.menuedit li {list-style: none;margin: 0;padding: 4px 2px 0 0;}
+.menuedit li.even {background: #EFF6FF;}
+.menuedit li.odd {background: #CEDADF;}
+
+.menuedit .tools,.menuedit .tools2 {display: block;overflow-x: hidden;vertical-align: middle;position: absolute;right: 35%;margin: -15px 0;}
+.menuedit .tools  img,.menuedit .tools2 img {padding: 0 3px;border: solid #ccc;border-width: 0 0 0 1px;position:relative;left: -3px;}
+
+.menuedit .tools2 {right:10%;}
+
+.menuedit .menusection {color: red;}
+.menuedit .menusection ol {color: black;}
+
+.nav {background: #cde;border: solid orange;border-width: 1px 0;margin: 0 0 5px 0;}
+.nav a {margin: 0 0 0 20px;color: #000;}
+
+.directory a {text-decoration:none;color:#000;}
+
+#footer {clear: both;width: 60%;float: right;margin: 0 5%;font-size: 0.7em;}

@@ -1,0 +1,2 @@
+php -f massmail.php -d max_execution_time=0 -d register_argc_argv=1
+php -f massmail.php -d max_execution_time=0 -d register_argc_argv=1 urgent

@@ -1,0 +1,98 @@
+@charset "UTF-8";
+/** 
+ * @author Kalle Karlsson (kakar)
+ * @version 0.1
+ * @pageage Templates
+ *
+ * Yweb Tempalate Stylesheet
+ */
+
+
+/*----- Article -----*/
+.articleHolder {
+	position: relative;
+	border-bottom:1px solid #b1b1b1;
+	margin-bottom: 25px;
+}
+
+.articleImg {
+	text-align: center;
+}
+
+.articleInfo {
+	display: inline-block;
+	width: 100%;
+	padding: 2px 0;
+	margin-bottom: 10px;
+	background-color: #ddd;
+	border-radius: 3px;
+}
+
+.articleInfo .author {
+	float: left;
+	padding-left: 8px;
+	
+}
+.articleInfo .category {
+	float: right;
+	padding-right: 8px;
+}
+
+.articleInfo a { color: #323232 !important; }
+.articleInfo a:hover { color: #fff !important; }
+
+.read_more a {
+/* 	font-weight:bold;  */
+	font-size: 9pt;
+	text-transform: uppercase;
+	color:#000!important; 
+	margin-right:10px;
+	background-image:url('images/ICN_kommentarer.jpg');
+	background-position:right 3px;
+	padding-right:10px;
+	background-repeat: no-repeat;
+}
+.read_more a:hover { 
+    color:#fff!important; 
+    background-image:none;
+}
+
+.articleAdmin {
+	display:none;
+	position: absolute;
+	top:0;
+	right: 0px;
+	-webkit-border-radius: 15px;
+	-moz-border-radius: 15px;
+	background-color: #666;
+	padding: 5px 10px;
+	opacity: 0.9;
+}
+
+.articleAdmin ul {list-style: none;}
+.articleAdmin li {display: inline-block; vertical-align: top;}
+.articleAdmin a:hover {background: none;}
+.articleAdmin a span {
+	display: block;
+	margin-top: 3px;
+	max-width: 35px;
+	text-align: center;
+	font-size: 7pt;
+	color: #fff;
+}
+
+
+/* ----- OVERLAY BOX ----- */
+.overlay_box {
+	-webkit-box-shadow: rgba(0,0,0,0.3) 0 5px 8px;
+	background: rgba(0,0,0,0.85);
+	border: 2px solid #fff;
+	border-radius: 8px;
+	padding: 4px;
+	color: #fff;
+}
+
+.overlay_box_ext {
+-webkit-border-image: url(edittags.png) 12 16 28 52 repeat repeat !important;
+border-width: 12px 16px 28px 52px !important;
+}

@@ -1,0 +1,2 @@
+0,20,40 * * * * php -f massmail.php -d max_execution_time=0 -d register_argc_argv=1 urgent >/dev/null 2>&1
+0 0 * * * php -f massmail.php -d max_execution_time=0 -d register_argc_argv=1 >/dev/null 2>&1

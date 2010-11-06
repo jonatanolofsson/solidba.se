@@ -1,0 +1,109 @@
+@charset "UTF-8";
+/** 
+ * @author Kalle Karlsson (kakar)
+ * @version 0.1
+ * @pageage Templates
+ *
+ * New Loginbox Stylesheet
+ */
+ 
+#login2 {
+	position: absolute;
+	top: 0;
+	right: 10px;
+	height: 15px;
+	width: 72px;
+	background-color: #888;
+	border-bottom-right-radius: 10px;
+	border-bottom-left-radius: 10px;
+	padding: 4px 8px 6px;
+	z-index: 10;
+	-webkit-box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+	-moz-box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+}
+
+#login2 h1 {
+	text-align: center;
+	display: block;
+	font-size: 9pt;
+	margin-bottom: 5px;
+	color: #fff;
+	font-weight: normal;
+	cursor: pointer;
+}
+
+#login2 .content {
+	display: none;
+}
+
+#login2 input.text {
+	width:100px;
+}
+
+#login2 label {
+	width: 50px;
+	display: inline-block;
+	color: #ddd;
+}
+
+
+/* ----- FEEDBACK ----- */
+.help_div {
+	position: fixed;
+	top: 0;
+	right: 0;
+	height: 100%;
+	z-index: 1000;
+}
+#btn_report {
+	float: right;
+	margin-top: 35px;
+	height: 75px;
+	width: 15px;
+	padding: 15px 5px 5px 9px;
+	background: #F87217;
+	border-top-left-radius: 10px;
+	border-bottom-left-radius: 10px;
+	overflow: hidden;
+	z-index: 100;
+	-webkit-box-shadow: -1px 1px 3px rgba(0,0,0,0.3);
+	-moz-box-shadow: -1px 1px 3px rgba(0,0,0,0.3);
+	cursor: pointer;
+}
+
+#btn_report h1 {
+	color: #fff;
+	font-size: 9pt;
+	font-weight: normal;
+	margin-top: 58px;
+	display: block;
+	-webkit-transform: rotate(-90deg);
+}
+
+.help_content {
+	display: none;
+	float: right;
+	overflow-x: hidden;
+	overflow-y: auto;
+	height: 100%;
+	background-color: #ffb686;
+	border: 4px solid #F87217;
+	-webkit-box-shadow: -1px 0px 3px rgba(0,0,0,0.3);
+	-moz-box-shadow: -1px 0px 3px rgba(0,0,0,0.3);
+	z-index: 101;
+}
+.report_content {
+	display: block;
+	width: 200px;
+	padding: 10px;
+}
+.report_content h2 {
+	font-size: 12pt;
+	margin-bottom: 10px;
+	border-bottom: 1px solid #696969;
+}
+.report_content input[type="text"], .report_content textarea {
+	background-color: #fff;
+	border: 0;
+	padding: 2px;
+}

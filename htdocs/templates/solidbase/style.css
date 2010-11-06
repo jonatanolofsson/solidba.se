@@ -1,0 +1,48 @@
+@CHARSET "UTF-8";
+
+body, html {margin:0;padding:0;font-size:84%;background:#EFF6FF url(/templates/solidbase/images/grasstile.jpg) repeat-x fixed;background-position:bottom;}
+.header    {margin:0;padding:0;font-family: Courier, monospace;background:#369 url(/templates/solidbase/images/wbggrad2.png) 0 10% repeat-x;border-bottom:2px solid orange;}
+.header h1 {margin:0; text-align:right;font-size:6em;color:#444;font-weight:normal;}
+.header h1 a {color:inherit;text-decoration:none;}
+
+.body      {float:left;position:relative;width:100%;margin:5% 0;}
+.left      {float:left;width:30%;margin:0 0 0 12%;}
+.right     {float:right;width:30%;margin:0 12% 0 0;}
+.left .box, .right .box
+           {border:1px solid #444;padding: 0% 2%;-moz-border-radius-topright:20px;-moz-border-radius-bottomleft:20px;width:100%;}
+.right .box{margin:0 10% 0 0;}
+.left .box {background: #def url(/templates/solidbase/images/bggrad2.png) repeat-x;}
+.right .box{background: green url(/templates/solidbase/images/wbggrad3.png) 0 40% repeat-x;}
+
+.right li  {color: orange;}
+.right li span {color: #111;}
+
+#footer {text-align:center;float:left;width:100%;color:#555;}
+#footer a {color:inherit;}
+.login fieldset {position:relative;width: 300px;margin:0 auto;border:solid #444;border-width:1px 0 0 0;padding:1em;}
+.login, .login input {font-size:0.9em;}
+.login input.text {width:100px;background: #EFF6FF;border:1px solid #ccc;}
+.login input.submit {width: 80px;background: #def; border:1px solid #ccc;}
+.login label {position:absolute;top:-11px;margin:0 0 0 -3px;}
+
+.toolbox span {display:none;}
+.toolbox ul   {display:inline;padding:0 5px;}
+.toolbox li   {list-style:none;display:inline;margin: 0 1px;}
+.toolbox      {border:solid #444;border-width:0 0 0 1px;display:inline;margin:0 5px;}
+
+h2 {color:#333;width:100%;border-bottom:1px dotted #fff;}
+
+a       {color:#000;}
+a:hover {text-decoration: none;}
+
+.menudiv {position:relative;width:100%;overflow:hidden;}
+.menudiv ul {clear:left;float:left;list-style:none;margin:0;padding:0;position:relative;left:50%;text-align:center;}
+.menudiv ul li {display:block;float:left;list-style:none;margin:0;padding:0;position:relative;right:50%;}
+.menudiv ul li a {display:block;margin:0 0 0 1px;padding:3px 10px;text-decoration:none;line-height:1.7em;color:#444;font-size:1.2em;font-weight: bold;text-decoration:none;border: solid transparent;border-width: 0 0 1px 0;width:200px;}
+.menudiv ul li a.current {border-color:#ccc;}
+.menudiv ul li a:hover {border-color:orange;}
+
+.right .image { width: 100%; text-align: center; margin: 2em 0;}
+.right .box {text-align: left;}
+img {border: 1px solid #ccc;}
+.icon {border:0;vertical-align:middle;}
