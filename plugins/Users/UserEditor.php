@@ -11,27 +11,23 @@
  * @package Privileges
  */
 class UserEditor extends Page{
-    public $privilegeGroup = 'Administrationpages';
+    private $that = false;
+
+    static public $edit_icon = 'small/user_edit';
+    static public $edit_text = 'Edit user';
+
+    function canEdit($obj) {
+        return is_a($obj, 'User');
+    }
 
     /**
      * Sets up the object
      * @param integer $id The ID of the object
      * @return void
      */
-    function __construct($id=false) {
-        parent::__construct($id);
-        $this->suggestName('Users', 'en');
-        $this->suggestName('Användare', 'sv');
-        $this->setAlias('userEditor');
-
-        $this->icon = 'small/user';
-        $this->deletable = false;
-    }
-
-    function may($u, $lvl) {
-        global $USER;
-        if($USER->ID != NOBODY && ($lvl & READ)) return true;
-        else return parent::may($u, $lvl);
+    function __construct($obj) {
+        parent::__construct($obj->ID);
+        $this->that = $obj;
     }
 
     /**
@@ -40,61 +36,14 @@ class UserEditor extends Page{
      */
     function run(){
         global $Templates, $USER, $CONFIG, $Controller, $DB;
+        if($this->saveChanges()) redirect(array('id' => $this->that->ID, 'saved' => 1));
 
-        $redo = false;
-        /**
-         * User input types
-         */
-        $_REQUEST->addType('edit', array('numeric', '#^new$#'));
-        $_REQUEST->setType('del', 'numeric');
-        $_REQUEST->setType('view', 'string');
-        $_REQUEST->setType('keyword', 'string');
-        $_POST->setType('terms', 'any', true);
-
-        if(!$_REQUEST['edit']) {
-            if(!$this->mayI(EDIT)) redirect(url(array('edit' => $USER->ID), 'id'));
-        }
-
-        $new = ($_REQUEST['edit'] == 'new');
-
-        if(!($this->mayI(EDIT) || ($_REQUEST->numeric('edit') && $Controller->{$_REQUEST['edit']}(EDIT)))) errorPage('401');
-
-        $redo = self::saveChanges();
-
-        /**
-         * Delete user
-         */
-        if($_REQUEST->numeric('del') && $this->may($USER, DELETE) && $Controller->{$_REQUEST['del']}('User') !== false) {
-            $Controller->{$_REQUEST['del']}(OVERRIDE)->delete();
-            Flash::create(__('User was deleted'));
-        }
-
-        /**
-         * Save terms
-         */
-        self::saveTerms();
-        /**
-         * Display page for editing user
-         */
-        if($_REQUEST['view'] == 'new' || ($new && $redo)) {
-            $this->content = array('header' => __('New user'), 'main' => $this->newUser());
-        }
-        elseif(!$new && ($_REQUEST['edit'] && ($redo || !$_REQUEST['updUserinfo']))) {
-            $this->setContent('main', $this->edit($_REQUEST['edit']));
-        }
-        elseif($_REQUEST['view'] == 'terms') {
-            $this->setContent('header', __('Terms and conditions'));
-            $this->setContent('main', $this->changeTerms());
-        }
-        /**
-         * Find a user to edit
-         */
-        else {
-            Head::add($CONFIG->UI->jQuery_theme.'/jquery-ui-*', 'css-lib');
-            $this->content = array('header' => $this->title,
-                'main' => $this->findUser());
-        }
-
+        global $Templates;
+        $this->setContent('main',
+            Form::quick(false, null,
+                $this->editTab()
+            )
+        );
         $Templates->render();
     }
 
@@ -112,77 +61,72 @@ class UserEditor extends Page{
     }
 
     function saveChanges() {
-        $redo = false;
+        if(!is_a($this->that, 'User')) return null;
+
+
+
+        /**
+         * Delete user
+         */
+        if($_REQUEST->numeric('del') && $this->that->mayI(DELETE)) {
+            $Controller->{$_REQUEST['del']}(OVERRIDE)->delete();
+            Flash::queue(__('User was deleted'));
+            redirect(url());
+        }
+
         global $Controller, $DB;
-        $_POST->setType('editUser', 'numeric');
         $_POST->setType('username', 'string');
         $_POST->setType('password1', 'string');
         $_POST->setType('password2', 'string');
         $_POST->setType('volgroups', 'numeric', true);
-        $_POST->setType('editUser', 'any');
-        $_POST->setType('edit', array('numeric', '$new$'));
-
-        $new = ($_POST['edit'] == 'new');
+        $changes = false;
         /**
          * Save the user
          */
-        if(($new && $Controller->userEditor->mayI(EDIT))
-            || ($_POST['editUser']
-                && $_POST['edit']
-                && $Controller->{$_POST['edit']}('User', OVERRIDE)
-                && ($Controller->userEditor->mayI(EDIT) || $Controller->{$_POST['edit']}(EDIT)))) {
-            do {
-                if($new) {
-                    $user = $Controller->newObj('User');
-                    $_POST['edit'] = $user->ID;
-                }
-                else {
-                    $user = $Controller->{$_POST['edit']}(OVERRIDE);
-                }
-                if(!$user) return false;
-                if($_POST['username'] && $_POST['username'] != $user->username) {
-                    if($DB->users->exists(array('username' => $_POST['username'],'id!' => $user->ID))) {
-                        $redo = true;
-                        Flash::create(__('Username is already in use'), 'warning');
-                        break;
-                    } else {
-                        if(!$user) break;
-                        $user->username = $_POST['username'];
-                    }
-                }
-                if($_POST['password1']) {
-                    if($_POST['password1'] === $_POST['password2']) {
-                        $user->password = $_POST['password1'];
-                    }
-                    else {
-                        Flash::create(__("The passwords don't match. Try again"), 'warning');
-                        $redo=true;
-                    }
-                }
-
-                $vgs = (array)$_POST['volgroups'];
-                $volkeys = $DB->{'spine,metadata'}->asList(array('spine.class' => 'Group', 'metadata.field' => 'GroupType', 'metadata.value' => array('vol', 'volpre')), 'spine.id');
-                $volgroups = $Controller->get($volkeys, OVERRIDE);
-                asort($volgroups);
-
-                /**
-                 * Save group data
-                 */
-                foreach($volgroups as $vg) {
-                    if(in_array($vg->ID, $vgs)) {
-                        if(!$vg->isMember($user)) $vg->addMember($user);
-                    } else {
-                        $vg->removeMember($user);
-                    }
-                }
-
-                UInfoFields::save($user->ID);
-                $Controller->forceReload($user);
-                if($new) Flash::create(__('A new user was created'));
-                else Flash::create(__('Your changes were saved'));
-            } while(false);
+        if($_POST['username'] && $_POST['username'] != $this->that->username) {
+            if($DB->users->exists(array('username' => $_POST['username'],'id!' => $this->that->ID))) {
+                Flash::create(__('Username is already in use'), 'warning');
+                return false;
+            } else {
+                $user->username = $_POST['username'];
+                $changes = true;
+            }
         }
-        return $redo;
+        if($_POST['password1']) {
+            if($_POST['password1'] === $_POST['password2']) {
+                $user->password = $_POST['password1'];
+                $changes = true;
+            }
+            else {
+                Flash::create(__("The passwords don't match. Try again"), 'warning');
+                return false;
+            }
+        }
+
+        $vgs = (array)$_POST['volgroups'];
+        $volkeys = $DB->{'spine,metadata'}->asList(array('spine.class' => 'Group', 'metadata.field' => 'GroupType', 'metadata.value' => array('vol', 'volpre')), 'spine.id');
+        $volgroups = $Controller->get($volkeys, OVERRIDE);
+        asort($volgroups);
+
+        /**
+         * Save group data
+         */
+        foreach($volgroups as $vg) {
+            if(in_array($vg->ID, $vgs)) {
+                if($vg->addMember($this->that)) {
+                    $changes = true;
+                }
+            } else {
+                if($vg->removeMember($this->that)) {
+                    $changes = true;
+                }
+            }
+        }
+
+        $changes = (UInfoFields::save($this->that->ID)||$changes);
+        $Controller->forceReload($this->that);
+        if($changes) Flash::create(__('Your changes were saved'));
+        return $changes;
     }
 
     /**
@@ -207,128 +151,80 @@ class UserEditor extends Page{
                 .$form->collection(new Tabber('tT', $lTabs));
     }
 
-    function edit($id) {
+    function editTab() {
         $_REQUEST->addType('view', 'string');
         $_REQUEST->addType('lang', 'string');
         $_REQUEST->setType('ch', 'numeric');
         global $Controller, $CONFIG, $DB, $USER;
-        if(!is_object($id)) {
-            $u = $Controller->{(string)$id}(EDIT, 'User');
-        } else {
-            $u = $id;
-            $id = $u->ID;
-            if(!$u->mayI(EDIT) || !is_a($u, 'User')) return false;
-        }
-        if(!$u) return false;
-        $ch=false;
-        if(in_array($_REQUEST['view'], array('content', 'revisions')) && $l = $_REQUEST['lang']) {
-            if($ch = PageEditor::saveChanges($u)) {
-                $_REQUEST->clear('view', 'lang');
-            }
-        }
-        if($ch || $_REQUEST['ch']) Flash::create(__('Your changes were saved'), 'confirmation');
+        $this->setContent('header', __('Editing user').': '.$this->that);
+        $form = new Form('editUser');
 
-        if(in_array($_REQUEST['view'], array('content', 'revisions')) && $l = $_REQUEST['lang']) {
-            $this->setContent('header', __('Editing user').': '.$u.' <i>['.google::languages($l).']</i>');
+        /**
+         * User settings
+         */
+        global $SITE;
 
-            $form = new Form('editPresentations');
+        $settingsform = $this->that->settings->getFormElements('usersettings');
 
-            $groups = $u->groups;
 
-            $presentations = array();
-            foreach($groups as $g) {
-                if(!in_array($g->ID, array(EVERYBODY_GROUP, MEMBER_GROUP)) && $g->DisplayMembers)
-                    $presentations['g'.$g->ID] = $g->Name;
-            }
-            asort($presentations);
-            $presentations = array_merge(array('g'.MEMBER_GROUP => $Controller->{(string)MEMBER_GROUP}->Name), $presentations);
+        /**
+         * Load voluntary groups
+         * @var groups
+         */
+        $volkeys = $DB->{'spine,metadata'}->asList(array('spine.class' => 'Group', 'metadata.field' => 'GroupType', 'metadata.value' => array('vol', 'volpre')), 'spine.id');
+        $volgroups = $Controller->get($volkeys, OVERRIDE);
+        propsort($volgroups, 'Name');
 
-            switch($_REQUEST['view']) {
-                case 'content':
-                    return PageEditor::contentEditor($u, $l, $presentations);
+        /**
+         * Group membership page
+         */
+        $groups = $this->that->groups();
+        $gTypes = array('vol' => array(), 'assigned' => array());
+        foreach($groups as $group) {
+            if(!$group->isMember($this->that)) continue;
+            switch($group->GroupType) {
+                case 'vol':
+                case 'volpre':
+                    $gTypes['vol'][] = $group->ID;
                     break;
-                case 'revisions':
-                    return PageEditor::viewRevisions($u, $l, $presentations);
+                default:
+                    $gTypes['assigned']['g'.$group->ID] = $group;
                     break;
             }
+        }
 
-        } else {
-            $this->setContent('header', __('Editing user').': '.$u);
-            $form = new Form('editUser');
+        $checked = array();
+        foreach($volgroups as $vg) {
+            if(in_array($vg->ID, $gTypes['vol'])) $checked[] = $vg->ID;
+        }
 
-            /**
-             * Presentations page
-             */
-            $langCList = '';
-            $languages = google::languages((array)$CONFIG->Site->languages);
-            ksort($languages);
-            $i=1;
-            foreach($languages as $l => $lang) {
-                $langCList .= '<li class="'.($i++%2?'odd':'even').'"><span class="fixed-width"><a href="'.url(array('view' => 'content', 'lang' => $l), array('id', 'edit'), false).'">'.__($lang).'</a></span><div class="tools">'.icon('small/disk_multiple', __('History'), url(array('view' => 'revisions', 'lang' => $l), array('id', 'edit'), false)).'</div></li>';
-            }
-            $langCList = '<ul class="list">'.$langCList.'</ul>';
+        asort($gTypes['assigned']);
 
-            /**
-             * User settings
-             */
-            global $SITE;
-
-            $settingsform = $u->settings->getFormElements('usersettings');
-            $userSettingsTab = ($settingsform?
-                new Tab(__('User settings'), $settingsform)
-            :null);
-
-
-            /**
-             * Load voluntary groups
-             * @var groups
-             */
-            $volkeys = $DB->{'spine,metadata'}->asList(array('spine.class' => 'Group', 'metadata.field' => 'GroupType', 'metadata.value' => array('vol', 'volpre')), 'spine.id');
-            $volgroups = $Controller->get($volkeys, OVERRIDE);
-            propsort($volgroups, 'Name');
-
-            /**
-             * Group membership page
-             */
-            $groups = $u->groups();
-            $gTypes = array('vol' => array(), 'assigned' => array());
-            foreach($groups as $group) {
-                if(!$group->isMember($u)) continue;
-                switch($group->GroupType) {
-                    case 'vol':
-                    case 'volpre':
-                        $gTypes['vol'][] = $group->ID;
-                        break;
-                    default:
-                        $gTypes['assigned']['g'.$group->ID] = $group;
-                        break;
-                }
-            }
-
-            $checked = array();
-            foreach($volgroups as $vg) {
-                if(in_array($vg->ID, $gTypes['vol'])) $checked[] = $vg->ID;
-            }
-
-            asort($gTypes['assigned']);
-
-            $gMemb = 	new Fieldset(__('Assigned groups'), listify($gTypes['assigned']))
-                        .(empty($volgroups)?null:new checkset(__('Voluntary groups'), 'volgroups', $volgroups, $checked));
-
-            return $form->collection(
-                new Hidden('edit', $id),
-                new Tabber('upane',
-                    (@$u->password !== 'LDAP'?new Tab(__('Login information'),
-                        new Input(__('Username'), 'username', @$u->username),
+        return array(
+            (@$this->that->password !== 'LDAP'
+                ? new Formsection(__('Login information'),
+                        new Input(__('Username'), 'username', @$this->that->username),
                         new Password(__('Password'), 'password1'),
-                        new Password(__('Password again'), 'password2')):null),
-                    @UInfoFields::edit($id, 'Tab'),
-                    new Tab(__('Presentations'), $langCList),
-                    $userSettingsTab,
-                    new EmptyTab(__('Group membership'),$gMemb)
-                )
-            );
-        }
+                        new Password(__('Password again'), 'password2')
+                  )
+                : null),
+            new Formsection(__('Presentation'),
+                new HTMLField(false, 'presentation', $this->that->getContent('presentation'))
+            ),
+            ($settingsform
+                ? new Formsection(__('User settings'),
+                    $settingsform
+                  )
+                : null
+            ),
+            @UInfoFields::edit($id, 'Tab'),
+            new Formsection(__('Group membership'),
+                new Fieldset(__('Assigned groups'), listify(arrayExtract($gTypes['assigned'], 'link', false, true))),
+                (empty($volgroups)
+                    ? null
+                    : new checkset(__('Voluntary groups'), 'volgroups', $volgroups, $checked))
+            )
+        );
     }
 
     /**

@@ -22,30 +22,8 @@ class Box {
     function __construct() {
         $args = func_get_args();
         $type = array_shift($args);
-        if(method_exists($this, $type)) $this->$type();
-        else {
-            global $CONFIG;
-            $CONFIG->Box->setType('Registered_Boxes', 'not_editable');
-            $Registered_Boxes = $CONFIG->Box->Registered_Boxes;
-            if(isset($Registered_Boxes[$type]) && is_callable($Registered_Boxes[$type])) {
-                call_user_func_array($Registered_Boxes[$type], $args);
-            }
-        }
-    }
-
-    static function registerCallback($name, $callback) {
         global $CONFIG;
-        if((is_string($callback) || is_array($callback)) && is_callable($callback)) {
-            $Registered_Boxes = $CONFIG->Box->Registered_Boxes;
-            $Registered_Boxes[$name] = $callback;
-            $CONFIG->Box->Registered_Boxes = $Registered_Boxes;
-        }
-    }
-
-    static function unregisterCallback($name) {
-        $Registered_Boxes = $CONFIG->Box->Registered_Boxes;
-        unset($Registered_Boxes[$name]);
-        $CONFIG->Box->Registered_Boxes = $Registered_Boxes;
+        if(method_exists($this, $type)) $this->$type();
     }
 
     /**
@@ -82,34 +60,55 @@ class Box {
 
     /**
      * Displays a few tools associated with the currently viewed page
-     * @return void
+     * @return string
      */
-    function toolbox() {
-        global $USER, $ID, $Controller, $CURRENT;
-        $r='';
-        // FIXME: Tooltips on icons.
+    function tools($id = false, $extras = true) {
+        global $Controller, $ID;
+        if(!$id) $id = $ID;
+        if(is_object($id)) {
+            $obj = $id;
+            $id = $obj->ID;
+        }
+        else {
+            $obj = $Controller->get($id);
+        }
+        if(!$obj) return false;
 
-        if($CURRENT->mayI(EDIT)) {
-            if($CURRENT->edit_link) {
-                $r .= '<li><a href="'.$CURRENT->edit_link.'">'.icon('small/page_edit').'<span>'.__('Edit page').'</span></a></li>';
+        $r=array();
+        if($extras === true) {
+            $r[] = icon('small/eye', __('View'), url(array('id' => $id)), true);
+            $extras = false;
+        }
+        if($obj->mayI(EDIT)) {
+            if($editors = $obj->editable) {
+                foreach($editors as $editor => $aLevel)
+                {
+                    if($obj->mayI($aLevel))
+                    {
+                        $r[] = icon($editor::$edit_icon, __($editor::$edit_text), url(array('edit' => $id, 'with' => $editor)), true);
+                    }
+                }
             }
         }
+        if(is_array($extras)) {
+            $r = array_merge($r, $extras);
+        }
+        elseif($extras) $r[] = $extras;
+        return Box::dropdown('small/bullet_wrench', false, $r);
+    }
 
-        if($CURRENT->mayI(EDIT) && @$Controller->alias('menuEditor', READ) && $Controller->alias('menuEditor')->enabled && is_a($CURRENT, 'MenuItem')){
-            $pears = $CURRENT->parents(false);
-            global $DB;
-            $mpars = $Controller->get($DB->spine->asList(array('id' => $pears, 'class' => 'MenuSection'), 'id'));
-            if($mpars) {
-                $mpars = array_intersect($pears, array_keys($mpars)); // Sorting
-                $r .= '<li><a href="'.url(array('id' => 'menuEditor', 'section' => array_shift($mpars)), false, false).'">'.icon('small/book_next').'<span>'.__('Edit menu').'</span></a></li>';
-            }
-        }
-        if($CURRENT->mayI(EDIT_PRIVILEGES)){
-            $r .= '<li><a href="'.url(array('id' => 'permissionEditor', 'edit' => $ID),false,false).'">'.icon('small/key').'<span>'.__('Edit permissions').'</span></a></li>';
-        }
-        if(!empty($r)) {
-            echo '<div class="toolbox" style="display:block;"><ul>'.$r.'</ul></div>';
-        }
+    function dropdown($icon, $text, $rows, $class="") {
+        JS::loadjQuery(false);
+        JS::lib('dropdowns');
+        return '<span class="dropdown'.($class?" ".$class:'').'">'
+            .'<span class="dropdown-icon">'.icon($icon, $text, false, true).'</span>'
+            .'<ul><li>'
+                .(is_array($rows)?implode('</li><li>', $rows):$rows)
+            .'</li></ul></span>';
+    }
+
+    function toolbox($obj = false) {
+        echo self::tools($obj);
     }
 
     function selectLanguage() {
@@ -128,18 +127,16 @@ class Box {
     function login() {
         global $USER, $SITE;
         if($USER->ID == NOBODY) {
-echo '
-        <div class="login">
-            <span class="lable">'.__('Login').'</span>
-            <form method="post" action="'.$SITE->url(true, true, true, true).'"><fieldset>
-                <label for="username">'.__('LiU-ID').'</label>
-                <input id="username" name="username" class="text" />
-                <label for="password">'.__('Password').'</label>
-                <input id="password" type="password" class="text" name="password" />
-                <input type="submit" class="submit" value="'.__('Login').'" />
-            </fieldset></form>*'.__('A cookie will be saved to remember your login').'
-        </div>
-';
+echo '<div class="login">'
+            //.'<span class="lable">'.__('Login').'</span>'
+            .'<form method="post" action="'.$SITE->url(true, false, true, true).'"><fieldset>'
+                .'<label for="username">'.__('Username').':</label>'
+                .'<input id="username" name="username" class="text" />'
+                .'<label for="password">'.__('Password').':</label>'
+                .'<input id="password" type="password" class="text" name="password" />'
+                .'<input type="submit" class="submit" value="'.__('Login').'" />'
+            .'</fieldset></form>*'.__('A cookie will be saved to remember your login')
+        .'</div>';
         } else {
 echo '
         <div class="login user">
@@ -162,7 +159,7 @@ echo '
                     <div class="login_help">
                         <div class="content_help">
                             <div class="content">
-                                <form id="login" method="post" action="."><fieldset>
+                                <form id="login" method="post" action="'.$SITE->url(true, false, true, true).'"><fieldset>
                                     <label for="username">LiU-ID</label>
                                     <input id="username" name="username" class="text" /><br/>
                                     <label for="password">Lösenord</label>
@@ -170,7 +167,6 @@ echo '
 
                                     <input type="submit" class="linkbutton" value="Logga in" />
                                 </fieldset></form>
-                                *'.__('A cookie will be saved to remember your login').'
                             </div>
                         </div>
                     </div>

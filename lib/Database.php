@@ -183,7 +183,13 @@ class Database{
         if($this->resource == false) return false;
         $a = array();
         while($row = $this->fetchAssoc($this->resource)) {
-            if(count($row)>1 && $fck) $a[array_shift($row)] = $row;
+            if(count($row)>1 && $fck) {
+                if($fck === 2) {
+                    reset($row);
+                    $a[current($row)] = $row;
+                }
+                else $a[array_shift($row)] = $row;
+            }
             else $a[] = $row;
         }
         return $a;
@@ -422,6 +428,13 @@ class Database{
     function close(){
         if(mysql_close($this->Connection)) $this->Connection = false;
     }
+
+
+
+    function formatLimit($limit) {
+        if(is_array($limit)) $limit = $limit[0].','.$limit[1];
+        return $limit;
+    }
 }
 /**
  * Each table in the database is assigned a DatabaseTable object which
@@ -430,7 +443,7 @@ class Database{
  * @package Base
  */
 class DatabaseTable{
-    protected $parent;
+    protected $database;
     private $name;
     private $columns;
     private $isLoaded = false;
@@ -439,10 +452,10 @@ class DatabaseTable{
      * Sets up the internal relations between the table and it's database
      * @access protected
      * @param string $tableName The name of the table that is beeing loaded
-     * @param database $parent Parent database object
+     * @param database $database database database object
      */
-    function __construct($tableName, $parent){
-        $this->parent = $parent;
+    function __construct($tableName, $database){
+        $this->database = $database;
         $this->name = $tableName;
     }
 
@@ -450,7 +463,7 @@ class DatabaseTable{
     function loadDatabaseStructure() {
         if($this->__loaded) return;
         $this->__loaded = true;
-        $r = $this->parent->query("SHOW COLUMNS FROM ".$this->name);
+        $r = $this->database->query("SHOW COLUMNS FROM ".$this->name);
         while($res = Database::fetchAssoc($r)) $this->columns[] = $res['Field'];
     }
 
@@ -501,13 +514,13 @@ class DatabaseTable{
     */
     function get($cond=false, $cols = false, $limit=false, $order=false, $group=false, $OR = false, $distinct=false) {
         $cond = $this->collapse($cond);
-        return $this->parent->query("SELECT ".($distinct?'DISTINCT ':'').
+        return $this->database->query("SELECT ".($distinct?'DISTINCT ':'').
                 ($cols == false ? '*' : $this->prepareCols($cols)).
                 " FROM `" . $this->name . "`" .
             (count($cond)>0 ? " WHERE " . implode(" ".($OR?'OR':'AND')." ", $cond) : "").
             ($group != false ? " GROUP BY " . $group : "").
             ($order != false ? " ORDER BY " . $order : "").
-            ($limit != false ? " LIMIT " . $limit : ""));
+            ($limit != false ? " LIMIT " . Database::formatLimit($limit) : ""));
     }
 
     /**
@@ -525,19 +538,26 @@ class DatabaseTable{
 
         $r = '';
         foreach($cols as $col) {
-            if($col == '*') {
-                $r .= ',`'.$this->name.'`.'.$col;
-            }
-            elseif(preg_match('#^[\'"].+[\'"]$#', $col)) {
-                $r .= ',' . Database::escape(substr($col,1,-1), false, false, true);
-            }
-            elseif(preg_match('#^(?P<func>[^\(]+)\((?P<param>[^\(]*)\)$#', $col)) {
-                $r .= ',' . $col;
-            } elseif(in_array($col, $this->columns)) {
-                $r .= ',`'.$this->name.'`.`'.$col.'`';
+            if($c = $this->prepareCol($col)) {
+                $r .= ','.$c;
             }
         }
         return substr($r, 1);
+    }
+
+    function prepareCol($col, $allowFunctions = true) {
+        if($col == '*') {
+            return '`'.$this->name.'`.'.$col;
+        }
+        elseif(preg_match('#^[\'"].+[\'"]$#', $col)) {
+            return $this->database->escape(substr($col,1,-1), false, false, true);
+        }
+        elseif($allowFunctions && preg_match('#^(?P<func>[^\(]+)\((?P<param>[^\(]*)\)$#', $col)) {
+            return $col;
+        } elseif(in_array($col, $this->columns)) {
+            return '`'.$this->name.'`.`'.$col.'`';
+        }
+        return false;
     }
 
     /**
@@ -553,7 +573,7 @@ class DatabaseTable{
      * @return resource
      */
     function asArray($cond=false, $cols = false, $limit=false, $fck=false, $order=false, $group=false, $OR=false, $distinct=false){
-        return $this->parent->asArray($this->get($cond, $cols, $limit, $order, $group, $OR, $distinct), $fck);
+        return $this->database->asArray($this->get($cond, $cols, $limit, $order, $group, $OR, $distinct), $fck);
     }
 
     /**
@@ -567,10 +587,26 @@ class DatabaseTable{
      * @param string $group Which column(s) to group the result by
      * @param bool $OR Whether the conditions should be treated as alternatives (true) or multiple resraints (false)
      * @param bool $distinct Return distinct results
-     * @return resource
+     * @return array List of all matched elements
      */
     function asList($cond=false, $cols = false, $limit=false, $fck = false, $order=false, $group=false, $OR=false, $distinct=false){
-        return $this->parent->asList($this->get($cond, $cols, $limit, $order, $group, $OR, $distinct), $fck);
+        return $this->database->asList($this->get($cond, $cols, $limit, $order, $group, $OR, $distinct), $fck);
+    }
+
+    /**
+     * Returns a single matched value (first row, first column of result)
+     * @access public
+     * @param array|string $cond An associative array with conditions for the SQL-query (alternatively a string with the same)
+     * @param string $cols Comma-separated list of requested columns. The first column will be returned
+     * @param int $row Which row number to return
+     * @param string $order Which column to order the results by, and how
+     * @param string $group Which column(s) to group the result by
+     * @param bool $OR Whether the conditions should be treated as alternatives (true) or multiple resraints (false)
+     * @param bool $distinct Return distinct results
+     * @return mixed The matching result
+     */
+    function single($cond=false, $col = false, $row=0, $order=false, $group=false, $OR=false, $distinct=false){
+        return $this->database->result($this->get($cond, $col, array($row, 1), $order, $group, $OR, $distinct), $row);
     }
 
     /**
@@ -584,7 +620,7 @@ class DatabaseTable{
      * @return resource
      */
     function asMDList($cond=false, $cols = false, $limit=false, $group=false, $OR=false, $multiple_results=false){
-        return $this->parent->asMDList($this->get($cond, $cols, $limit, false, $group, $OR), $multiple_results);
+        return $this->database->asMDList($this->get($cond, $cols, $limit, false, $group, $OR), $multiple_results);
     }
 
     /**
@@ -611,13 +647,13 @@ class DatabaseTable{
             if($this->exists($values, false, true)) return ($return_success?false:null);
         }
         $vals = $this->collapse($values, false);
-        $this->parent->query(	($replace == false ? "INSERT".($weak == 2 ? ' IGNORE':'')." INTO " : "REPLACE ").
+        $this->database->query(	($replace == false ? "INSERT".($weak == 2 ? ' IGNORE':'')." INTO " : "REPLACE ").
                         "`".$this->name."`".
                         (count($values) > 0 ? " SET " . implode(", ", $vals) : " () VALUES ()"));
 
-        if($return_success) return (mysql_affected_rows($this->parent->Connection)>0);
+        if($return_success) return (mysql_affected_rows($this->database->Connection)>0);
 
-        if($this->parent->resource) return mysql_insert_id($this->parent->Connection);
+        if($this->database->resource) return mysql_insert_id($this->database->Connection);
         else return false;
     }
 
@@ -637,12 +673,12 @@ class DatabaseTable{
         $vals = $this->collapseMultipleRows($values);
         if(empty($vals) || $vals[0].$vals[1]=='') return false;
 
-        $this->parent->query(	($replace == false ? "INSERT".($weak == 2 ? ' IGNORE':'')." INTO " : "REPLACE ").
+        $this->database->query(	($replace == false ? "INSERT".($weak == 2 ? ' IGNORE':'')." INTO " : "REPLACE ").
                         "`".$this->name."` (".$vals[0].") VALUES (".join('),(', $vals[1]).")");
 
-        if($return_success) return (mysql_affected_rows($this->parent->Connection)>0);
+        if($return_success) return (mysql_affected_rows($this->database->Connection)>0);
 
-        if($this->parent->resource) return mysql_insert_id($this->parent->Connection);
+        if($this->database->resource) return mysql_insert_id($this->database->Connection);
         else return false;
     }
 
@@ -663,15 +699,15 @@ class DatabaseTable{
         $vals = $this->collapseMultipleRows2($values);
         if(empty($vals) || $vals[0].$vals[1]=='') return false;
 
-        $this->parent->query(	($replace == false
+        $this->database->query(	($replace == false
                                     ? "INSERT" .($weak == 2 ? ' IGNORE':'')." INTO "
                                     : "REPLACE ").
                         "`".$this->name."` (`".join('`,`',$vals[0])."`)"
                         ." VALUES (".join('),(', $vals[1]).")");
 
-        if($return_success) return (mysql_affected_rows($this->parent->Connection)>0);
+        if($return_success) return (mysql_affected_rows($this->database->Connection)>0);
 
-        if($this->parent->resource) return mysql_insert_id($this->parent->Connection);
+        if($this->database->resource) return mysql_insert_id($this->database->Connection);
         else return false;
     }
 
@@ -786,46 +822,34 @@ class DatabaseTable{
             $gt = false;
             $e = true;
             $like = false;
+            $e_wild = false;
+            $b_wild = false;
 
-            switch(substr($col, -1, 1)) {
-                case '!': 	$neg = true;
-                            $col = substr($col, 0, -1);
-                        break;
-                case '=':	$e = true;
-                            $col = substr($col, 0, -1);
-                        break;
-                case '<':	$e = false;
-                            $lt = true;
-                            $col = substr($col, 0, -1);
-                        break;
-                case '>':	$e = false;
-                            $gt = true;
-                            $col = substr($col, 0, -1);
-                        break;
-                case '~':	$e = false;
-                            $gt = false;
-                            $like = true;
-                            $col = substr($col, 0, -1);
-                        break;
-            }
-
-            switch(substr($col, -1, 1)) {
-                case '!': 	$neg = true;
-                            $col = substr($col, 0, -1);
-                        break;
-                case '<':	$lt = true;
-                            $col = substr($col, 0, -1);
-                        break;
-                case '>':	$gt = true;
-                            $col = substr($col, 0, -1);
-                        break;
+            while(in_array(($last_char = substr($col, -1, 1)), array('!','=','<','>','~'))) {
+                switch($last_char) {
+                    case '!':   $neg = true;
+                            break;
+                    case '=':   $e = true;
+                            break;
+                    case '<':   $e = false;
+                                $lt = true;
+                            break;
+                    case '>':   $e = false;
+                                $gt = true;
+                            break;
+                    case '~':   $e = false;
+                                $gt = false;
+                                $like = true;
+                            break;
+                }
+                $col = substr($col, 0, -1);
             }
 
             switch(substr($col, 0,2)) {
-                case '#!':	$exec = true;
+                case '#!':  $exec = true;
                             $col = substr($col,2);
                         break;
-                case '!!':	$noescape = true;
+                case '!!':  $noescape = true;
                             $col = substr($col,2);
                         break;
             }
@@ -833,10 +857,10 @@ class DatabaseTable{
             if(in_array($col, $this->columns)) {
                 if(is_array($val) && $select){
                     if($val)
-                        $vals[] = "`".$this->name."`.`".$col."`" . "".($neg?' NOT':'')." IN (".join(',', ($noescape?$val:Database::escape($val, true, $exec, true))).')';
+                        $vals[] = "`".$this->name."`.`".$col."`" . "".($neg?' NOT':'')." IN (".join(',', ($noescape?$val:$this->database->escape($val, true, $exec, true))).')';
                 }
                 else {
-                    $vals[] = "`".$this->name."`.`".$col."`" . ($neg?($like?' NOT':'!'):'').($like?' LIKE ':(($lt?'<':'').($gt?'>':'').($e?'=':''))).($noescape?$val:Database::escape($val, false, $exec, true));
+                    $vals[] = "`".$this->name."`.`".$col."`" . ($neg?($like?' NOT':'!'):'').($like?' LIKE ':(($lt?'<':'').($gt?'>':'').($e?'=':''))).($noescape?$val:$this->database->escape($val, false, $exec, true));
                 }
             }
         }
@@ -859,11 +883,11 @@ class DatabaseTable{
         $vals = $this->collapse($values, false);
         if(count($vals) == 0) return 0;
         $cond = $this->collapse($condition);
-        $response = $this->parent->query(	"UPDATE `".
+        $response = $this->database->query(	"UPDATE `".
                         $this->name . "` SET " . implode(", ", $vals)
                         .($cond != false ? " WHERE " . implode(" ".($OR?'OR':'AND')." ", $cond) : "")
-                        .($limit?' LIMIT '.$limit:''));
-        $arows = mysql_affected_rows($this->parent->Connection);
+                        .($limit?' LIMIT '.Database::formatLimit($limit):''));
+        $arows = mysql_affected_rows($this->database->Connection);
         if($insert == false || $arows>0) return $arows;
         if($arows == 0 && is_array($values) && is_array($condition))
             return (int)(bool)$this->insert(array_merge($values, $condition), false, true, true);
@@ -880,8 +904,17 @@ class DatabaseTable{
     */
     function delete($cond,$limit=1, $OR=false){
         $cond = $this->collapse($cond);
-        $this->parent->query("DELETE FROM `" . $this->name . "` WHERE " . implode(" ".($OR?'OR':'AND')." ", $cond) . ($limit?' LIMIT '.$limit:''));
-        return mysql_affected_rows($this->parent->Connection);
+        $this->database->query("DELETE FROM `" . $this->name . "` WHERE " . implode(" ".($OR?'OR':'AND')." ", $cond) . ($limit?' LIMIT '.Database::formatLimit($limit):''));
+        return mysql_affected_rows($this->database->Connection);
+    }
+
+    /**
+     * Deletes all rows in the table
+     * @access public
+     * @return void
+    */
+    function truncate() {
+        $this->database->query("TRUNCATE TABLE `".$this->name."`");
     }
 
     /**
@@ -913,7 +946,7 @@ class DatabaseTable{
     function getRow($cond=false, $cols=false, $order=false, $group=false, $OR=false){
         $r = $this->get($cond, $cols, 1, $order, $group, $OR);
         if($r && mysql_num_rows($r) > 0)
-            return $this->parent->fetchAssoc($r);
+            return $this->database->fetchAssoc($r);
         else return false;
     }
 
@@ -935,7 +968,7 @@ class DatabaseTable{
                     (is_array($columns)
                         ? $columns
                         : explode(',', str_replace(' ','',$columns)))));
-        $s = "MATCH(".implode(', ',$cols).") AGAINST ('".implode(' ', $needles)."')";
+        $s = "MATCH(".implode(', ',$cols).") AGAINST ('".implode(' ', $this->database->escape($needles, true))."')";
         return $this->get($s, $returnCols);
     }
 
@@ -950,11 +983,11 @@ class DatabaseTable{
     function like($needles, $columns="*", $returnCols="*", $omitWildcard=false){
         $this->loadDatabaseStructure();
         if(!is_array($needles)) $needles = array($needles);
-        $cols = ($columns == "*" ? $this->columns : array_intersect($this->columns, explode(',', str_replace(' ','',$columns))));
+        $cols = ($columns == "*" ? $this->columns : $this->prepareCols($columns));
         $s = "";
         foreach($needles as $needle) {
             foreach($cols as $col) {
-                $s .= " || " . $col . " LIKE '". ($omitWildcard?'':'%') . Database::escape($needle, $this->parent->Connection) . ($omitWildcard?'':'%') . "'";
+                $s .= " || " . $col . " LIKE '". ($omitWildcard?'':'%') . $this->database->escape($needle) . ($omitWildcard?'':'%') . "'";
             }
         }
         $s = substr($s, 4);
@@ -969,14 +1002,15 @@ class DatabaseTable{
     * @param string $returnCols Which columns to return from the search
     * @return resource
     */
-    function searchFromArray($searchArray, $returnCols="*"){
-        if(!is_array($needles)) return false;
+    function searchFromArray($searchArray, $returnCols="*", $limit=false, $order=false, $group=false, $distinct=false){
+        if(!is_array($searchArray)) return false;
         $s = "";
         foreach($searchArray as $col => $needle) {
-            $s .= " || " . $col . " LIKE '%" . Database::escape($needle, $this->parent->Connection) . "%'";
+            if($c = $this->prepareCol($col, false))
+                $s .= " || " . $c . " LIKE '%" . $this->database->escape($needle) . "%'";
         }
         $s = substr($s, 4);
-        return $this->get($s, $returnCols);
+        return $this->get($s, $returnCols, $limit, $order, $group, true, $distinct);
     }
 
     /**
@@ -987,7 +1021,7 @@ class DatabaseTable{
     */
     function exists($cond, $OR=false, $encodeArrays=false){
         $cond = $this->collapse($cond,!$encodeArrays);
-        return (mysql_num_rows($this->parent->query("SELECT * "
+        return (mysql_num_rows($this->database->query("SELECT * "
                 ." FROM `" . $this->name . "`" .
                 (count($cond)>0 ? " WHERE " . implode(" ".($OR?'OR':'AND')." ", $cond) : "").
                 " LIMIT 1")) == 1);
@@ -1014,9 +1048,9 @@ class JointDatabaseTable extends DatabaseTable {
     private $tables;
     private $tblString;
 
-    function __construct($tables, $parent) {
+    function __construct($tables, $database) {
         $this->tables = $tables;
-        $this->parent = $parent;
+        $this->database = $database;
         $this->tblString = '';
         $tmpTblArray = array();
         $tmpTables = array_filter($tables, create_function('$a', 'global $DB; return $DB->$a->hasCol("id");'));
@@ -1054,14 +1088,14 @@ class JointDatabaseTable extends DatabaseTable {
     */
     function get($cond=false, $cols = false, $limit=false, $order=false, $group=false, $OR = false, $distinct=false) {
         $cond = $this->collapse($cond);
-        return $this->parent->query("SELECT ".($distinct?'DISTINCT ':'').
+        return $this->database->query("SELECT ".($distinct?'DISTINCT ':'').
                 ($cols == false ? '*' : $this->prepareCols($cols)).
                 " FROM `" . join('`,`', $this->tables) . "`"
                 . " WHERE " . $this->tblString .
             (count($cond)>0 ? ($this->tblString?" AND ":'') . implode(" ".($OR?'OR':'AND')." ", $cond) : "").
             ($group != false ? " GROUP BY " . $group : "").
             ($order != false ? " ORDER BY " . $order : "").
-            ($limit != false ? " LIMIT " . $limit : ""));
+            ($limit != false ? " LIMIT " . $this->database->formatLimit($limit) : ""));
     }
 
     /**
@@ -1082,7 +1116,7 @@ class JointDatabaseTable extends DatabaseTable {
             $sortedConds[$d[0]][$d[1]] = $val;
         }
         foreach($sortedConds as $table => $cond) {
-            $collapsed = array_merge($collapsed, (array)$this->parent->{$table}->collapse($cond));
+            $collapsed = array_merge($collapsed, (array)$this->database->{$table}->collapse($cond));
         }
         return $collapsed;
     }
@@ -1104,7 +1138,7 @@ class JointDatabaseTable extends DatabaseTable {
         }
         $prepared = array();
         foreach($sortedCols as $table => $cols) {
-            $prepared = array_merge($prepared, (array)$this->parent->{$table}->prepareCols($cols));
+            $prepared = array_merge($prepared, (array)$this->database->{$table}->prepareCols($cols));
         }
         return join(',', $prepared);
     }

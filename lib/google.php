@@ -58,8 +58,8 @@ class google {
      * @return void
      */
     static function load($what, $version, $extra = false) {
-        Head::add('http://www.google.com/jsapi', 'js-url');
-        Head::add("google.load('".$what."', '".$version."'".($extra?", {".$extra."}":"").");", 'js-raw');
+        Head::add('http://www.google.com/jsapi', 'js-url', false, false);
+        JS::raw("google.load('".$what."', '".$version."'".($extra?", {".$extra."}":"").");", false, false);
     }
 
     static $languageMap = array(	"sq" => 'Albanian',

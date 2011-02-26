@@ -15,8 +15,9 @@ class SafeEmails {
      * @param string $text Text to search for emails
      * @return string The text with encrypted emails
      */
-    function replace($text) {
-        if(!$text) return $text;
+    function replace($text) {   
+        global $USER;
+        if(!$text || $USER->ID !== NOBODY) return $text;
         $email_regexp = '([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4})';
         $text = preg_replace_callback('#<('.join('|', self::$DoNottouch).')[^>]*>.*?</\1>#is', array('dntHash', 'mailhash'), $text);
         $text = preg_replace_callback('#\<a[^\>]* href="mailto:'.$email_regexp.'"(?:[^>]*?)>([^\<]*)\<\/a\>'.'#is', array('SafeEmails', 'safeEmailsHelper'), $text);

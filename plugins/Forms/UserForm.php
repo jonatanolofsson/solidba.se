@@ -1,10 +1,7 @@
 <?php
 class UserForm extends Base {
     private $loadedLanguage;
-    private $_Form_Title=false;
-    private $_Limit=false;
     private $_PostCount=null;
-    private $_Public_Form=null;
     private $page = false;
 
     function __construct($page, $lang=false) {
@@ -19,13 +16,7 @@ class UserForm extends Base {
         if(!$lang) $this->loadedLanguage = $USER->settings['language'];
         else $this->loadedLanguage = $lang;
 
-        Metadata::injectAll('Limit', 'Form_Title', 'Public_Form');
-    }
-
-    function __set($property, $value) {
-        if(in_array($property, array('Limit', 'Form_Title', 'Public_Form'))) {
-            $this->{'_'.$property} = $value;
-        }
+        Base::registerMetadata(array('Limit', 'Form_Title', 'Public_Form'));
     }
 
     function __get($property) {
@@ -232,10 +223,9 @@ GROUP BY `post_id`) as `t2`") == count($duplicate)) {
                 }
             }
             $_POST->clear('nform', 'form');
-            Metadata::set(array('Limit' => $_POST['formlimit'], 'Form_Title' => $_POST['ftitle'], 'Public_Form' => $_POST['formpublic'] ));
-            $this->_Limit = $_POST['formlimit'];
-            $this->_Public_Form = (isset($_POST['formpublic']));
-            $this->_Form_Title = $_POST['ftitle'];
+            $this->Limit = $_POST['formlimit'];
+            $this->Public_Form = (isset($_POST['formpublic']));
+            $this->Form_Title = $_POST['ftitle'];
             $this->setActive(strtotime($_POST['formactivate']['date'].', '.$_POST['formactivate']['time']),
                     strtotime($_POST['formdeactivate']['date'].', '.$_POST['formdeactivate']['time']),
                     'form');
@@ -272,7 +262,7 @@ GROUP BY `post_id`) as `t2`") == count($duplicate)) {
 
 
             while(false !== ($field = Database::fetchAssoc($r))) {
-                $formFields[] = new tablerow(
+                $formFields[] = new Tablerow(
                                     icon('small/arrow_switch', __('Move'), '#', 'fieldhandle'),
                                     new select(false, 'form['.$field['field_id'].'][type]', $fieldTypes, $field['type'], false, false, false, false, 'medium'),
                                     new Input(false, 'form['.$field['field_id'].'][lbl]', $field['label'], false, false, 'medium'),
@@ -283,7 +273,7 @@ GROUP BY `post_id`) as `t2`") == count($duplicate)) {
         }
         if($_REQUEST['newFormField']) {
             $nid = uniqid();
-            $formFields[] = new tablerow(
+            $formFields[] = new Tablerow(
                                 icon('small/arrow_switch', __('Move'), '#', 'fieldhandle'),
                                 new Hidden('form['.$nid.'][new]',1).
                                 new select(false, 'form['.$nid.'][type]', $fieldTypes, false, false, false, false, false, 'medium'),
@@ -293,7 +283,7 @@ GROUP BY `post_id`) as `t2`") == count($duplicate)) {
         }
         if(!empty($formFields)) {
             $ff = new Table(
-                new tableheader('',__('Type'), __('Label'), __('Value(s)')),
+                new Tableheader('',__('Type'), __('Label'), __('Value(s)')),
                 $formFields
             );
             $ff->id = 'formfields';
@@ -337,8 +327,8 @@ GROUP BY `post_id`) as `t2`") == count($duplicate)) {
             $rows[] = array(@$p->userinfo['sn'].', '.@$p->userinfo['givenName'], $p->getEmail());
         }
         usort($rows, create_function('$a,$b', 'return ($a[0]>$b[0]);'));
-        return new Table(new tableheader(__('Name'), __('Email'), __('Notes')),
-            array_map(create_function('$a', 'return new tablerow($a[0], $a[1], "&nbsp;");'), $rows));
+        return new Table(new Tableheader(__('Name'), __('Email'), __('Notes')),
+            array_map(create_function('$a', 'return new Tablerow($a[0], $a[1], "&nbsp;");'), $rows));
     }
 
     /**
@@ -459,7 +449,7 @@ GROUP BY `post_id`) as `t2`") == count($duplicate)) {
                     }
                 }
 
-                $data[$res['post_id']][(isset($sort[$res['field_id']])?$sort[$res['field_id']]:count($sort)+$u++)] = new tablerow(@$labels[$res['field_id']], $res['value']);
+                $data[$res['post_id']][(isset($sort[$res['field_id']])?$sort[$res['field_id']]:count($sort)+$u++)] = new Tablerow(@$labels[$res['field_id']], $res['value']);
             }
         }
         if(empty($postSort)) return '';
@@ -476,7 +466,7 @@ GROUP BY `post_id`) as `t2`") == count($duplicate)) {
 
         $oa = array();
         foreach($sortedData as $post_id => $rows) {
-            $tbl = new Table(new tableheader(__('Posted by').': '.@$Controller->{$postMeta[$post_id]['poster']}, ($this->mayI(EDIT)||in_array($post_id, $myPosts)?icon('small/delete', __('Delete post'), url(array('delpost' => $post_id), true)):'')),
+            $tbl = new Table(new Tableheader(__('Posted by').': '.@$Controller->{$postMeta[$post_id]['poster']}, ($this->mayI(EDIT)||in_array($post_id, $myPosts)?icon('small/delete', __('Delete post'), url(array('delpost' => $post_id), true)):'')),
                                 $rows);
             $tbl->class = 'form_posterdata';
             $oa[] = $tbl;
@@ -491,13 +481,13 @@ GROUP BY `post_id`) as `t2`") == count($duplicate)) {
                         .'</span>';
 
         if(!$no_stats) {
-            $s = new Table(new tableheader(__('Field'), __('Data'), __('Occurrances')));
+            $s = new Table(new Tableheader(__('Field'), __('Data'), __('Occurrances')));
             $s->class = 'form_stats_table';
             foreach($stats as $field_id => $values) {
                 $st_rows = array();
                 $i=0;
                 foreach($values as $value => $count) {
-                    $st_rows[] = new tablerow((!($i++)?@$labels[$field_id]:''), $value, $count);
+                    $st_rows[] = new Tablerow((!($i++)?@$labels[$field_id]:''), $value, $count);
                 }
                 $s->append($st_rows);
             }

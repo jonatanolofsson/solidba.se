@@ -15,8 +15,7 @@ class MenuItem extends Base{
     static private $PLACES=array();
     private $_children=false;
     private $_link = false;
-    private $_enabled = true;
-    private $_icon = false;
+    private $_tags = false;
     protected $_deletable = true;
     protected $_loadedLanguage=false;
 
@@ -24,10 +23,10 @@ class MenuItem extends Base{
         parent::__construct($id);
         global $USER;
 
-        if($USER) {
-            if(!$language) $language = $USER->settings['language'];
-            $this->_loadedLanguage = $language;
-        }
+        $this->getMenuPos();
+
+        parent::registerMetadata('description', '');
+        parent::registerMetadata('icon', '');
     }
 
     function suggestName($name, $language='en') {
@@ -47,43 +46,6 @@ class MenuItem extends Base{
         }
     }
 
-
-    /**
-     * Set which
-     * @param array|strings Variable number of tags
-     * @return void
-     */
-    function setTags() {
-        $Tags = func_get_args();
-        if(count($Tags)==1 && is_array($Tags[0])) $Tags = $Tags[0];
-        $OldTags = $this->getTags();
-        $remove = array_diff($OldTags, $Tags);
-        $add 	= array_diff($Tags, $OldTags);
-
-        global $DB;
-        if(!empty($remove)) {
-            $DB->tags->delete(array('id' => $this->ID, 'lang' => $this->_loadedLanguage, 'tag' => $remove));
-        }
-        if(!empty($add)) {
-            foreach($add as $a) {
-                $DB->tags->insert(array('id' => $this->ID, 'lang' => $this->_loadedLanguage, 'tag' => $a), false, true);
-            }
-        }
-        $this->Tags = $Tags;
-    }
-
-    /**
-     * Get all the tags from the database
-     * @return array
-     */
-    function getTags($force=false, $d=false) {
-        if(!$force && $this->tagged) return $this->_Tags;
-        $this->tagged = true;
-        global $DB;
-        $this->_Tags = $DB->tags->asList(array('id' => $this->ID, 'lang' => $this->_loadedLanguage), 'tag');
-        return $this->_Tags;
-    }
-
     /**
      * Sets the variables of the object and updates the database if nescessary.
      * Unrecognized properties are forwarded to it's parent
@@ -92,46 +54,18 @@ class MenuItem extends Base{
      * @see solidbase/lib/Base#__set($property, $value)
     */
     function __set($property, $value){
-        if(in_array($property, array('place', 'enabled', 'link', 'icon', 'parent', 'description', 'Name'))) {
-            if($this->ID) {
-                $ipn = $property;
-                switch($property){
-                    case 'place':
-                        $this->move($value);
-                        break;
-                    case 'enabled':
-                        $this->enabled = $value;
-                        break;
-                    case 'description':
-                        $ipn = '_'.$property;
-                    case 'Name':
-                        $this->getSelf();
-                        if($value != @$this->$ipn && @$this->$ipn !== false && @$this->$ipn !== null) {
-                            Metadata::$metameta = $this->_loadedLanguage;
-                            Metadata::set($property, $value);
-                        }
-                        if($property == 'Name') {
-                            parent::__set($property, $value);
-                        }
-                        else $this->$ipn = $value;
-                        break;
-                    case 'link':
-                        $this->_link = $value;
-                        break;
-                    case 'icon':
-                        $this->_icon = $value;
-                        break;
-                    case 'parent':
-                        if(@$Controller->alias('menu_editor')->mayI(EDIT)) {
-                            $this->move('last', $value);
-                        }
-                        break;
-
-                 }
-                return true;
-            }
-        } else {
-            parent::__set($property, $value);
+        switch($property){
+            case 'place':
+                $this->move($value);
+                break;
+            case 'parent':
+                if(@$Controller->alias('menu_editor')->mayI(EDIT)) {
+                    $this->move('last', $value);
+                }
+                break;
+            default:
+                parent::__set($property, $value);
+                break;
         }
     }
 
@@ -140,54 +74,36 @@ class MenuItem extends Base{
      * @see solidbase/lib/Base#__get($property)
     */
     function __get($property){
-        if($property == 'ID') return parent::__get($property);
-        if(in_array($property, array('Name', 'loadedLanguage', 'description'))) $this->getSelf();
-        if(in_array($property, array('parent', 'parentID', 'link', 'enabled', 'place', 'icon', 'deletable', 'description', 'loadedLanguage'))) {
-            if(in_array($property, array('parent', 'parentID', 'place'))) $this->getMenuPos();
-            switch($property) {
-                case 'parent':
-                    if (isset(self::$PARENTS[$this->ID]) && self::$PARENTS[$this->ID]) {
-                        global $Controller;
-                        return $Controller->{(string)self::$PARENTS[$this->ID]}(OVERRIDE);
-                    } else return false;
-                    break;
-                case 'parentID':
-                    return @self::$PARENTS[$this->ID];
-                    break;
-                case 'place':
-                    if(isset(self::$PLACES[$this->ID]))
-                        return self::$PLACES[$this->ID];
-                    else return false;
-                    break;
-                default:
-                    return $this->{'_'.$property};
-            }
-        } elseif(in_array($property, array('children', 'next', 'previous'))) {
-            return $this->$property();
-        } elseif(in_array($property, array('parentIDs', 'parents'))) {
-            return $this->parents(($property == 'parents'));
-        } else {
-            return parent::__get($property);
-        }
-    }
+        switch($property) {
+            case 'language':
+                return $this->language();
+            case 'parentID':
+                return @self::$PARENTS[$this->ID];
+            case 'parentIDs':
+                return $this->parents(false);
+            case 'parent':
+                if (isset(self::$PARENTS[$this->ID]) && self::$PARENTS[$this->ID]) {
+                    global $Controller;
+                    return $Controller->{(string)self::$PARENTS[$this->ID]}(OVERRIDE);
+                } else return false;
+            case 'parents':
+                return $this->parents();
+            case 'place':
+                if(isset(self::$PLACES[$this->ID]))
+                    return self::$PLACES[$this->ID];
+                else return false;
+            case 'link':
+                return $this->{'_'.$property};
 
-    /**
-     * Loads the menudata on the object from the database.
-     * The data is loaded once, then not reloaded unless excplicitly told to do so
-     * @param bool $force Force reload
-     * @return bool
-    */
-    function getSelf($force=false){
-        global $USER;
-        if(!$this->_loadedLanguage && $USER) $this->_loadedLanguage = $USER->settings['language'];
-        if(!$this->__gotten || $force) {
-            $this->__gotten = true;
-            global $Controller, $DB;
-            $this->getMetadata(array($this->_loadedLanguage, ''), $force, array('description', 'Name'));
+            case 'children':
+            case 'next':
+            case 'previous':
+                return $this->$property();
+                break;
+            default:
+                return parent::__get($property);
         }
-        return true;
     }
-    private $__gotten=false;
 
     /**
      * Loads the menu relation on the object from the database.
@@ -214,7 +130,6 @@ class MenuItem extends Base{
      * @return integer
      */
     function place(){
-        $this->getSelf();
         return self::$PLACES[$this->ID];
     }
 
@@ -227,6 +142,20 @@ class MenuItem extends Base{
         $this->getMenuPos();
         if(!$return_obj) return self::$PARENTS[$this->ID];
         return $this->parent;
+    }
+
+    function language($language=false)
+    {
+        if($language) {
+            $this->_loadedLanguage = $language;
+        }
+        else
+        {
+            global $USER;
+            if(!$this->_loadedLanguage && $USER)
+                $this->_loadedLanguage = $USER->settings['language'];
+        }
+        return $this->_loadedLanguage;
     }
 
     /**
@@ -357,19 +286,19 @@ class MenuItem extends Base{
             if($this->place == $newPlace && $this->parentID == $pid) return true;
             $oldParent = $this->parentID;
             $oldPlace = $this->place;
-            $tonext = (	$oldParent == $pid
+            $tonext = ( $oldParent == $pid
                         && $this->place !== false
                         && $newPlace == self::$PLACES[$this->ID] + 1);
 
-            $DB->menu->update(	array('!!place' => '(`menu`.`place`+1)'),
+            $DB->menu->update(  array('!!place' => '(`menu`.`place`+1)'),
                                 array('place>'.($tonext?'':'=') => $newPlace, 'parent' => $pid),
                                 false, false);
-            $a = $DB->menu->update(	array(	"parent" => $pid,
+            $a = $DB->menu->update( array(  "parent" => $pid,
                                             "place"  => $newPlace+$tonext),
                                     array('id' => $this->ID),
                                 true);
             if($oldPlace !== false) {
-                $DB->menu->update(	array('!!place' => '(`menu`.`place`-1)'),
+                $DB->menu->update(  array('!!place' => '(`menu`.`place`-1)'),
                                     array('place>' => $oldPlace, 'parent' => $oldParent),
                                     false, false);
             }
@@ -409,7 +338,6 @@ class MenuItem extends Base{
     function deleteFromMenu(){
         global $DB, $Controller, $USER;
         if($Controller->menuEditor->may($USER, EDIT) || $this->may($USER, DELETE)) {
-            $this->getSelf();
             $DB->menu->delete($this->ID);
             if(isset(self::$PLACES[$this->ID]) && self::$PLACES[$this->ID] != null) {
                 $DB->query("UPDATE menu SET place=(place-1) WHERE place>'".$this->place
@@ -436,6 +364,7 @@ class MenuItem extends Base{
      */
     function subMenu($page=false, $maxlevel=false, $extendActive=false, $ignore_sections=false, $quiet=false, $includeDescription=false, $excludeSelf = true) {
         global $PAGE, $Controller, $DB;
+        if($extendActive == -1) $extendActive = 10e4;
 
         $UP = false;
         if(!$page) $page = $PAGE;
@@ -448,17 +377,10 @@ class MenuItem extends Base{
         } else {
             $parents = $page->parents(false);
             $msparents = array_intersect($parents, $DB->spine->asList(array('id' => $parents, 'class' => 'MenuSection'), 'id'));
-            $par = array_shift($msparents);
+            //$par = array_shift($msparents);
             array_pop($msparents);
 
-            if($msparents) {
-                do {
-                    $UP = $parents[array_search(array_shift($msparents), $parents)-1];
-                }while($msparents && !in_array($UP, $msparents));
-                echo '<span class="menuUP">'.icon('large/2uparrow-16', __('Up'), url(array('id' => $UP))).'</span>';
-            }
-
-            new Menu($par, $maxlevel, $extendActive, $ignore_sections, $quiet, $includeDescription, $excludeSelf);
+            new Menu(array_pop($msparents), $maxlevel, $extendActive, $ignore_sections, $quiet, $includeDescription, $excludeSelf);
 
             //FIXME: Remove or make it work
 /*
@@ -468,7 +390,7 @@ class MenuItem extends Base{
 */
 
             /* uglyhax to infalte div if menu empty */
-            echo "&nbsp;";
+            //echo "&nbsp;";
         }
     }
 }

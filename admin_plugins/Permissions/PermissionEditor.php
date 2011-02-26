@@ -12,65 +12,23 @@
  * @package Privileges
  *
  */
-class PermissionEditor extends Page{
-    private $edit = false;
+class PermissionEditor extends Page {
+    private $that = false;
     private $DBTable = 'privileges';
-    public $privilegeGroup = 'Administrationpages';
     static public function installable() {return __CLASS__;}
     static public function uninstallable() {return __CLASS__;}
+
+    static public $edit_icon = 'small/key';
+    static public $edit_text = 'Permissions';
 
     /**
      * Sets up the object
      * @param integer $id The ID of the object
      * @return void
      */
-    function __construct($id=false){
-
-        parent::__construct($id);
-        global $CURRENT, $DB, $CONFIG;
-
-        /**
-         * User input types
-         */
-        $_REQUEST->setType('edit', 'string');
-
-        $this->alias = $alias = 'permissionEditor';
-        $this->icon = 'small/key';
-        $this->suggestName('Edit permissions');
-
-        if($CURRENT && $CURRENT->isMe('pageEditor')) $this->link = array('id'=> $this->ID, 'edit' => $_REQUEST['edit']);
-        else $this->link = array('id'=> $this->ID);
-
-        $this->deletable = false;
-
-        MenuEditor::registerEditor('#.#',$alias,$this->icon, 'Edit permissions',array('id' => $this->ID),'edit',EDIT_PRIVILEGES);
-    }
-
-    /**
-     * Override original may() to allow the user access to the tool for the objects for
-     * which it has permission to EDIT_PRIVILEGES.
-     * I other cases, fallback to the original may()
-     */
-    function may($u, $lvl) {
-        global $Controller, $ID, $USER;
-        if(($lvl & READ) && $_REQUEST['edit']) {
-            if(
-                $USER->ID !== NOBODY
-                && $USER->ID == $_REQUEST['edit']
-                )
-            {
-                return true;
-            }
-            elseif(
-                $ID == $this->ID
-                && $_REQUEST['edit'] != $this->ID
-                && $Controller->{$_REQUEST['edit']}(EDIT_PRIVILEGES)
-                )
-            {
-                return true;
-            }
-        }
-        return parent::may($u, $lvl);
+    function __construct($obj){
+        $this->that = $obj;
+        parent::__construct($obj->ID);
     }
 
     /**
@@ -103,7 +61,21 @@ class PermissionEditor extends Page{
      * @return void
      */
     function run(){
-    global $Controller, $Templates, $DB, $USER;
+        global $Controller, $Templates, $DB, $USER;
+        if($this->saveChanges()) redirect(array('id' => $this->that->ID, 'saved' => 1));
+        $this->setContent("header", __('Edit permissions'));
+        $this->setContent("main", $this->editPermissions());
+        if($_REQUEST['popup']) $t = 'popup';
+        else $t = 'admin';
+        $Templates->$t->render();
+    }
+
+    /**
+     * Save changes to an object's privileges
+     */
+    function saveChanges() {
+        if(!$this->that->mayI(EDIT_PRIVILEGES)) return;
+        global $DB;
 
         /**
          * User input types
@@ -120,78 +92,57 @@ class PermissionEditor extends Page{
         $_REQUEST->setType('keyword', 'string');
         $_REQUEST->setType('pdel', 'numeric');
 
-        if($this->may($USER, READ)) {
-            /**
-             * Display overview
-             */
-            if($_REQUEST->valid('view')) {
-                $this->content = array('header' => __('Permission overview'),
-                                        'main' => $this->overview($_REQUEST['view']));
-            }
-            elseif($_REQUEST->valid('edit') && $this->edit = $Controller->{$_REQUEST['edit']}(EDIT_PRIVILEGES)) {
 
-                /**
-                 * Save changes to an object's privileges
-                 */
-                if($_REQUEST['rpl']) {
-                    if($this->edit->may($USER, EDIT_PRIVILEGES)) {
-                        $priv = $DB->privileges->asList(array('id' => $this->edit->ID), 'beneficiary');
-                        foreach($priv as $uid) {
-                            $privileges = @$_POST['privileges'][$uid];
-                            $access = 0;
-                            if(isset($privileges['read'])) $access |= READ;
-                            if(isset($privileges['edit'])) $access |= EDIT;
-                            if(isset($privileges['ep'])) $access |= EDIT_PRIVILEGES;
-                            if(isset($privileges['del'])) $access |= DELETE;
-                            if(isset($privileges['pub'])) $access |= PUBLISH;
-                            $DB->privileges->update(array('privileges' => $access), array('id' => $this->edit->ID, 'beneficiary' => $uid));
-                            Flash::create(__('Privileges updated'));
-                        }
-                    }
-                }
-                /**
-                 * Create a new privilege
-                 */
-                elseif($_REQUEST->valid('nP')) {
-                    if($this->edit->may($USER, EDIT_PRIVILEGES)) {
-                        $DB->privileges->insert(array('id' => $this->edit->ID, 'beneficiary' => $_REQUEST['nP']), false, true);
-                        Flash::create(__('New privilege created'), 'confirmation');
-                    }
-                }
-                /**
-                 * Delete a privilege
-                 */
-                elseif($_REQUEST->valid('pdel')) {
-                    if($this->edit->may($USER, EDIT_PRIVILEGES)) {
-                        if($DB->privileges->exists(array('id' => $this->edit->ID, 'beneficiary' => $_REQUEST['pdel']))) {
-                            $DB->privileges->delete(array('id' => $this->edit->ID, 'beneficiary' => $_REQUEST['pdel']));
-                            Flash::create(__('Privilege deleted'), 'warning');
-                        }
-                    }
-                }
-                /**
-                 * Update user/group privileges
-                 */
-                elseif($_REQUEST['uPerm']) {
-                    if($this->may($USER, EDIT_PRIVILEGES)) {
-                        $access = 0;
-                        if(isset($_REQUEST['mayinstall'])) $access += INSTALL;
-                        $DB->privileges->update(array('privileges' => $access), array('id' => $this->edit->ID, 'beneficiary' => $this->edit->ID), true);
-                        Flash::create(__('Privileges updated'));
-                    }
-                }
 
-            /**
-             * Pageview logic
-             */
-                $this->content = array("header" => __('Edit permissions'), "main" => $this->editPermissions());
+        if($_REQUEST['rpl']) {
+            if($this->that->mayI(EDIT_PRIVILEGES)) {
+                $priv = $DB->privileges->asList(array('id' => $this->that->ID), 'beneficiary');
+                foreach($priv as $uid) {
+                    $privileges = @$_POST['privileges'][$uid];
+                    $access = 0;
+                    if(isset($privileges['read'])) $access |= READ;
+                    if(isset($privileges['edit'])) $access |= EDIT;
+                    if(isset($privileges['ep'])) $access |= EDIT_PRIVILEGES;
+                    if(isset($privileges['del'])) $access |= DELETE;
+                    if(isset($privileges['pub'])) $access |= PUBLISH;
+                    $DB->privileges->update(array('privileges' => $access), array('id' => $this->that->ID, 'beneficiary' => $uid));
+                    Flash::create(__('Privileges updated'));
+                }
             }
-            else {
-                $this->content = array('header' => __('Permissions'), "main" => $this->viewSpine());
+        }
+        /**
+         * Create a new privilege
+         */
+        elseif($_REQUEST->valid('nP')) {
+            if($this->that->mayI(EDIT_PRIVILEGES)) {
+                $DB->privileges->insert(array(
+                    'id' => $this->that->ID,
+                    'beneficiary' => $_REQUEST['nP'],
+                    'privileges' => $this->that->sweepPrivileges()
+                ), false, true);
             }
-            if($_REQUEST['popup']) $t = 'popup';
-            else $t = 'admin';
-            $Templates->$t->render();
+        }
+        /**
+         * Delete a privilege
+         */
+        elseif($_REQUEST->valid('pdel')) {
+            if($this->that->mayI(EDIT_PRIVILEGES)) {
+                if($DB->privileges->delete(array('id' => $this->that->ID, 'beneficiary' => $_REQUEST['pdel'])))
+                {
+                    Flash::create(__('Privilege deleted'), 'warning');
+                }
+            }
+        }
+        /**
+         * Update user/group privileges
+         */
+        elseif($_REQUEST['uPerm']) {
+            if($this->mayI(EDIT_PRIVILEGES)) {
+                $access = 0;
+                if(isset($_REQUEST['mayinstall'])) $access += INSTALL;
+                $DB->privileges->update(array('privileges' => $access), array('id' => $this->that->ID, 'beneficiary' => $this->that->ID), true);
+                Flash::create(__('Privileges updated'));
+            }
         }
     }
 
@@ -229,21 +180,21 @@ class PermissionEditor extends Page{
             }
         $r = '<div class="nav"><a href="'.url(null, 'id').'">'.icon('small/arrow_left').__('Back to overview').'</a>'.
         (is_a($a, 'Page')?'<a href="'.url(array('id' => $a->ID)).'">'.icon('small/arrow_left').__('To page').'</a>':'').'</div>';
-        $r.='<form action="'.url(null, array('id','view')).'" method="post">
-        <fieldset><legend>'.__('Permissions for').' '.$a.'</legend><input type="hidden" name="ovp" value="1" /><table cellpadding="0" cellspacing="0" border="0" class="privilegeList">
-    <thead>
-        <tr>
-            <th>'.__('Delete').'</th>
-            <th>'.__('Resource').'</th>
-            <th>'.icon('small/eye', __('Read')).'</th>
-            <th>'.icon('small/page_edit', __('Edit')).'</th>
-            <th>'.icon('small/thumb_up', __('Publish')).'</th>
-            <th>'.icon('small/key', __('Edit privileges')).'</th>
-            <th>'.icon('small/delete', __('Delete')).'</th>
-        </tr>
-    </thead>
-    <tbody>
-    ';
+        $r.='<form action="'.url(null, array('id','view')).'" method="post">'
+        .'<fieldset><legend>'.__('Permissions for').' '.$a.'</legend><input type="hidden" name="ovp" value="1" />'
+        .'<table cellpadding="0" cellspacing="0" border="0" class="privilegeList">'
+    .'<thead>'
+        .'<tr>'
+            .'<th width="10">'.__('Delete').'</th>'
+            .'<th width="*">'.__('Resource').'</th>'
+            .'<th width="20">'.icon('small/eye', __('Read')).'</th>'
+            .'<th width="20">'.icon('small/page_edit', __('Edit')).'</th>'
+            .'<th width="20">'.icon('small/thumb_up', __('Publish')).'</th>'
+            .'<th width="20">'.icon('small/key', __('Edit privileges')).'</th>'
+            .'<th width="20">'.icon('small/delete', __('Delete')).'</th>'
+        .'</tr>'
+    .'</thead>'
+    .'<tbody>';
     $m = $DB->privileges->get(array('beneficiary' => $id), 'id,privileges');
     while($row = Database::fetchAssoc($m)) {
         if($obj = $Controller->{$row['id']}) {
@@ -280,16 +231,11 @@ $r.= '
     private function editPermissions(){
     global $DB, $Controller;
         $r = '';
-        $r .= '<h2>['.get_class($this->edit).']: '.$this->edit.'</h2>';
-        $r .= '<div class="nav">'
-                .($_REQUEST['referrer']?'<a href="'.url(array('id' => $_REQUEST['referrer']), array('edit', 'filter', 'popup')).'">'.icon('small/arrow_left', __('Back')).__('Back').'</a>':'')
-                .'<a href="'.url(null, 'id').'">'.icon('small/arrow_up').__('To overview').'</a>'
-                .(is_a($this->edit, 'Page')?'<a href="'.url(array('id' => $this->edit->ID)).'">'.icon('small/arrow_left').__('To page').'</a>':'')
-                .'</div>';
-$gform = new Form('nGP', url(null, array('id', 'edit', 'referrer', 'filter', 'popup')), false);
+        $r .= '<h2>['.get_class($this->that).']: '.$this->that.'</h2>';
+$gform = new Form('nGP', url(null, array('edit', 'with', 'referrer', 'filter', 'popup')), false);
 $groups = $Controller->getClass('Group');
 propsort($groups, 'Name');
-$uform = new Form('findUser', url(null, array('id', 'edit', 'referrer', 'filter', 'popup')), false);
+$uform = new Form('findUser', url(null, array('edit', 'with', 'referrer', 'filter', 'popup')), false);
 $r .= ''.new Accordion(
             __('User permission'),
             $uform->collection(
@@ -317,33 +263,33 @@ $r .= $this->__REEDprivilegeList();
      */
     private function __REEDprivilegeList(){
     global $Controller, $DB;
-        $privileges = $DB->privileges->asList(array("id" => $this->edit->ID), 'beneficiary,privileges', false, true);
+        $privileges = $DB->privileges->asList(array("id" => $this->that->ID), 'beneficiary,privileges', false, true);
         $beneficiaries = $Controller->get(array_keys($privileges), OVERRIDE);
         if(!$beneficiaries) return;
         $groups = array();
         foreach($beneficiaries as $b) {
             $groups[get_class($b)][] = $b;
         }
-        $r='<form action="'.url(null, array('id', 'edit', 'referrer', 'filter', 'popup')).'" method="post">';
+        $r='<form action="'.url(null, array('with', 'edit', 'referrer', 'filter', 'popup')).'" method="post">';
         foreach($groups as $class => $objs) {
-$r .= '<fieldset><legend>'.__($class.'s').'</legend><input type="hidden" name="rpl" value="1" /><table cellpadding="0" cellspacing="0" border="0" class="privilegeList">
-    <thead>
-        <tr>
-            <th>'.icon('large/editdelete-16', __('Delete')).'</th>
-            <th>'.icon('large/groupevent-16', __('User/group')).'</th>
-            <th>'.icon('small/eye', __('Read')).'</th>
-            <th>'.icon('small/page_edit', __('Edit')).'</th>
-            <th>'.icon('small/thumb_up', __('Publish')).'</th>
-            <th>'.icon('small/key', __('Edit privileges')).'</th>
-            <th>'.icon('small/delete', __('Delete')).'</th>
-        </tr>
-    </thead>
-    <tbody>
-    ';
+$r .= '<fieldset><legend>'.__($class.'s').'</legend><input type="hidden" name="rpl" value="1" />'
+    .'<table cellpadding="0" cellspacing="0" border="0" class="privilegeList">'
+    .'<thead>'
+        .'<tr>'
+            .'<th width="20">'.icon('large/editdelete-16', __('Delete')).'</th>'
+            .'<th width="*">'.icon('large/groupevent-16', __('User/group')).'</th>'
+            .'<th width="20">'.icon('small/eye', __('Read')).'</th>'
+            .'<th width="20">'.icon('small/page_edit', __('Edit')).'</th>'
+            .'<th width="20">'.icon('small/thumb_up', __('Publish')).'</th>'
+            .'<th width="20">'.icon('small/key', __('Edit privileges')).'</th>'
+            .'<th width="20">'.icon('small/delete', __('Delete')).'</th>'
+        .'</tr>'
+    .'</thead>'
+    .'<tbody>';
             foreach($objs as $obj) {
                 $operm = $privileges[$obj->ID];
     $r .= '		<tr>
-                <td>'.icon('small/delete', __('Delete permission'), url(array('pdel' => $obj->ID), array('id', 'edit', 'referrer', 'filter', 'popup'))).'</a></td>
+                <td>'.icon('small/delete', __('Delete permission'), url(array('pdel' => $obj->ID), array('with', 'edit', 'referrer', 'filter', 'popup'))).'</a></td>
                 <td>'.$obj.'</td>
                 <td align="center"><input name="privileges['.$obj->ID.'][read]" type="Checkbox" class="Checkbox"'.(($operm & READ)?' checked="checked"':'').' /></td>
                 <td align="center"><input name="privileges['.$obj->ID.'][edit]" type="Checkbox" class="Checkbox"'.(($operm & EDIT)?' checked="checked"':'').' /></td>
@@ -390,7 +336,7 @@ $r.= '
                 $i=0;
                 foreach($results as $user) {
                     if($user) {
-                        $r .= '<li class="'.($i%2?'even':'odd').'">'.icon('small/add', __('Add privileges for this user'), url(array('nP' => $user->ID), array('id', 'edit', 'referrer', 'filter', 'popup', 'keyword'))).$user.'</li>';
+                        $r .= '<li class="'.($i%2?'even':'odd').'">'.icon('small/add', __('Add privileges for this user'), url(array('nP' => $user->ID), array('with', 'edit', 'referrer', 'filter', 'popup', 'keyword'))).$user.'</li>';
                         $i++;
                     }
                 }
@@ -435,6 +381,11 @@ $r.= '
         }
         $r .= '</ul>';
         return $r.($total > $perpage ? $pager['links']:'');
+    }
+
+    function canEdit($obj)
+    {
+        return is_a($obj, 'Base');
     }
 }
 ?>

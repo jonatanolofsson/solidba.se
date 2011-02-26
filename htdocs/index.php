@@ -15,7 +15,6 @@ if(is_dir('INSTALL')) {
     die();
 }
 
-
 //FIXME: Remove?
 ini_set('xdebug.var_display_max_depth', 5);
 
@@ -24,13 +23,12 @@ ini_set('xdebug.var_display_max_depth', 5);
  */
 $s = microtime(true);
 define("solidbase", 1.0);
-error_reporting(E_ALL);
+error_reporting(E_ALL &~E_DEPRECATED);
 
 /**
  * Run initialization script and start outbut buffering
  */
 include '../lib/init.php';
-
 /* Output buffering */
 if($_REQUEST->raw('disable_ob')!=1) {
     ob_start("contentSize");
@@ -38,16 +36,21 @@ if($_REQUEST->raw('disable_ob')!=1) {
     ob_start("ob_iconv_handler");
     ob_start("outputBufferFilter");
 }
+
 /**
  * Detect requested object and load it
  */
-if($_REQUEST['id'] && $CURRENT = associateID(OVERRIDE));
-elseif($domain = associateSubdomain() && $CURRENT = @$Controller->{$domain});
-elseif(!$_REQUEST['id']) $CURRENT = @$Controller->frontpage(OVERRIDE);
+$association_type = 'default';
+$CURRENT = false;
+$EDIT = false;
+if($_REQUEST['id'] && $CURRENT = associateID()) $association_type = 'id';
+elseif($_REQUEST['edit'] && $CURRENT = associateEditor()) {$association_type = 'edit';$EDIT=$CURRENT->ID;}
+elseif(($domain = associateSubdomain()) && $CURRENT = @$Controller->{$domain}(READ)) $association_type = 'subdomain';
+elseif(!$_REQUEST['id'] && $CURRENT = $Controller->frontpage(READ));
 else errorPage(404);
-
 $PAGE = $CURRENT;
 $ID = $CURRENT->ID;
+
 if(!$_REQUEST['id']) $_REQUEST['id'] = $ID;
 
 /**

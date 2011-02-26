@@ -1,5 +1,7 @@
 <?php
 define('MINIFICATION', '/3rdParty/min');
+global $CONFIG;
+$CONFIG->base->setType('Minify_JS_and_CSS', 'select', array('No', 'Yes'));
 class Head {
     private static $HEAD;
     static $MINIFIABLE = array('css-lib', 'js-lib', 'css-url', 'js-url');
@@ -13,15 +15,10 @@ class Head {
      * @see OBFilter()
      * @return unknown_type
      */
-    function add($string, $string_type='formatted', $defer=-1, $min=true, $force_order=false, $IE=false)
+    function add($string, $string_type='formatted', $defer=-1, $min=true, $IE=false)
     {
-        //FIXME: Kommentera mer!!!
         global $CONFIG;
-
-        //FIXME: move to Installer
-        $CONFIG->base->setType('Minify_JS_and_CSS', 'select', array('No', 'Yes'));
-    //FIXME: CONFIG var
-        $min = (bool)(	$min
+        $min = (bool)(  $min
                         && in_array($string_type, self::$MINIFIABLE)
                         && $CONFIG->base->Minify_JS_and_CSS
                         && stripos($string, 'http:') !== 0
@@ -32,16 +29,6 @@ class Head {
         if(in_array($type, array('js-lib', 'js-url'))) $type = 'js';
         if(in_array($type, array('css-lib', 'css-url'))) $type = 'css';
 
-        $IECond = array('', '');
-        if($IE) {
-            if($IE === true) {
-                $IECond[0] = '<!--[if IE]>';
-            } else {
-                $IECond[0] = '<!--[if IE '.$IE.']>';
-            }
-            $IECond[1] = '<![endif]-->';
-        }
-
         if(substr($string_type, 0, 2) == 'js') {
             if($defer == -1) $defer = true;
         } else {
@@ -51,16 +38,19 @@ class Head {
 
         $md5 = md5($string);
         if(!isset(self::$HEAD[$IE][$type][$md5])) {
-            self::$HEAD[$IE][$type][$md5] = array('where' => $w, 'string' => $string, 'type' => $string_type, 'min' => $min, 'force_order' => $force_order);
+            self::$HEAD[$IE][$type][$md5] = array('where' => $w, 'string' => $string, 'type' => $string_type, 'min' => $min);
         }
-        self::$HEAD[$IE][$type][$md5]['where'] *= $w;
-        self::$HEAD[$IE][$type][$md5]['min'] *= $min;
+        else {
+            self::$HEAD[$IE][$type][$md5]['where'] *= $w;
+            self::$HEAD[$IE][$type][$md5]['min'] *= $min;
+        }
     }
 
 
     function finalize() {
         global $CONFIG;
-        $min = (bool)($CONFIG->base->Minify_JS_and_CSS);
+        $min = @(bool)($CONFIG->base->Minify_JS_and_CSS);
+
         $r = array('','');
         foreach(self::$HEAD as $IE => $types) {
             $IECond = array('', '');
@@ -89,6 +79,7 @@ class Head {
                     }
                 }
             }
+
             if(isset($where[0])) {
                 print_r($where[0]);
                 $a = self::compile($where[0]);

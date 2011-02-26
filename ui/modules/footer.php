@@ -25,6 +25,11 @@ class footer {
             echo '<pre>'.print_r($DB->rawQueries, true).'</pre>';
             echo '<pre>'.print_r(array_diff($DB->rawQueries, array_unique($DB->rawQueries)), true).'</pre>';
         }
+        if($_REQUEST->raw('force_dump') & 8) {
+            $q = $DB->rawQueries;
+            sort($q);
+            echo '<pre>'.print_r($q, true).'</pre>';
+        }
     }
 }
 ?>

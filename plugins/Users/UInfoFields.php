@@ -86,7 +86,6 @@ class UInfoFields extends Page{
         $_REQUEST->setType('editFieldSubm', 'string');
         $_REQUEST->setType('newFieldSubm', 'any');
         $_REQUEST->setType('fieldlabel', 'string');
-        $_REQUEST->setType('fieldname', 'string');
         $_REQUEST->setType('fieldtype', '#^(string|image|file)$#');
         $_REQUEST->setType('fieldvalidation', 'string');
         $_REQUEST->setType('deleteField', 'string');
@@ -102,15 +101,15 @@ class UInfoFields extends Page{
                 $a = array();
             }
             $busy=false;
-            $newname = strtolower(preg_replace('#\W#', '', $_REQUEST['fieldname']));
+            $newname = idfy($_REQUEST['fieldlabel']);
             if(!empty($newname)) {
-                if($_REQUEST['editFieldSubm'] || !in_array($_REQUEST['fieldname'], (array)$this->Fields)) {
-                    $a[$newname] = array(	'label' => $_REQUEST['fieldlabel'],
+                if($_REQUEST['editFieldSubm'] || !in_array($_REQUEST['newname'], (array)$this->Fields)) {
+                    $a[$newname] = array(   'label' => $_REQUEST['fieldlabel'],
                                     'type' => $_REQUEST['fieldtype'],
                                     'validation' => $_REQUEST['fieldvalidation'],
                                     'description' => $_REQUEST['fielddesc']);
 
-                    if($_REQUEST['editFieldSubm'] && $_REQUEST['oldname'] != $_REQUEST['fieldname']) {
+                    if($_REQUEST['editFieldSubm'] && $_REQUEST['oldname'] != $newname) {
                         $this->Fields = arrayRemove($this->Fields, $_REQUEST['oldname']);
                         unset($a[$_REQUEST['oldname']]);
                         $DB->userinfo->update(array('prop' => $newname), array('prop' => $_REQUEST['oldname']), false, false);
@@ -188,10 +187,12 @@ class UInfoFields extends Page{
         }
 
         if($_REQUEST->valid('editField') && in_array($_REQUEST['editField'], $this->Fields)) {
-            $this->content = array('header' => __('Edit field'), 'main' => $this->fieldForm($_REQUEST['editField']));
+            $this->setContent('header', __('Edit field'));
+            $this->setContent('main', $this->fieldForm($_REQUEST['editField']));
         }
         else {
-            $this->content = array('header' => __('User information-fields'), 'main' => $this->fieldSettings());
+            $this->setContent('header', __('User information-fields'));
+            $this->setContent('main', $this->fieldSettings());
         }
         $Templates->admin->render();
     }
@@ -211,10 +212,9 @@ class UInfoFields extends Page{
         return $form->collection(
                     new Fieldset(__('Create a new user information-field'),
                         (!$field ? null : new Hidden('oldname', $field)),
-                        new Input(__('Label'), 'fieldlabel', @$info['label'], 'nonempty', __('This is what the user will see')),
-                        new Input(__('Name'), 'fieldname', @$field, 'nonempty', 'This is a unique name used to identify the field'),
-                        new Select(__('Type'), 'fieldtype', array('string' => __('Text'), 'image' => __('Image'), 'file' => __('File')), @$info['type']),
-                        new Input(__('Validation'), 'fieldvalidation', @$info['validation'])
+                        new Input(__('Label'), 'fieldlabel', @$info['label'], 'nonempty', __('The visible name of the field')),
+                        new Select(__('Type'), 'fieldtype', array('string' => __('Text'), 'image' => __('Image'), 'file' => __('File')), @$info['type'], false, false, false, __('The field type')),
+                        new Input(__('Validation'), 'fieldvalidation', @$info['validation'], false, __('Leave empty for no validation'))
                     )
                 );
     }
@@ -265,7 +265,7 @@ class UInfoFields extends Page{
 
         $_REQUEST->setType('uinfo', 'string', true);
         $user = $Controller->{(string)$id}(OVERRIDE);
-        if(!$user || !$user->may($USER, EDIT)) return false;
+        if(!$user || !$user->mayI(EDIT)) return false;
 
         $info = $user->userinfo;
         $uinfoFields = @$CONFIG->userinfo->Fields;
@@ -342,17 +342,12 @@ class UInfoFields extends Page{
             }
             $fields .= '</ol>';
         } else {
-            $fields = __('Empty');
+            $fields = __('No fields');
         }
 
-        return new Tabber('cf',
-            new EmptyTab(__('Current fields'),
-                $fields
-            ),(!$this->may($USER, EDIT)?null:
-            new EmptyTab(__('New'),
-                $this->fieldForm()
-            ))
-        );
+        return (!$this->mayI(EDIT)?null:$this->fieldForm())
+            .'<hr />'
+            .$fields;
     }
 }
 

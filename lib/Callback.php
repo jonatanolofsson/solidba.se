@@ -24,19 +24,8 @@ class Callback{
         return array('id', 'function');
     }
 
-    function __call() {
-        if(func_num_args()) {
-            $params = func_get_args();
-            return call_user_func_array(array($this, 'INVOKE'), $params);
-        } else $this->__invoke();
-    }
-
     function __toString(){
-        if(!$this->object) {
-            if($this->id) $this->object = $Controller->{(string)$this->ID};
-            else return '';
-        }
-        return call_user_func(array($this->object, $this->function));
+        return self::__invoke();
     }
 
     function __invoke(){
@@ -44,10 +33,8 @@ class Callback{
             if($this->id) $this->object = $Controller->{(string)$this->ID};
             else return '';
         }
-        if(func_num_args()) {
-            $params = func_get_args();
-            return call_user_func_array(array($this->object, $this->function), $params);
-        } else call_user_func(array($this->object, $this->function));
+        $params = func_get_args();
+        return call_user_func_array(array($this->object, $this->function), $params);
     }
 }
 

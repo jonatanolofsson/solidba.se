@@ -14,29 +14,31 @@
  * @package Pages
  */
 class Page extends MenuItem{
-    private $_Header=false;
-    private $_title=false;
-    private $_content = false;
+    private $saved_content = array();
+    private $content = array();
     private $_modules = array();
-    private $_template = false;
-    private $_Form = false;
-    private $_attachments = false;
-    protected $_edit_link=false;
+    private $_Form;
     public $privilegeGroup = 'Pages';
-//	private $DBTable = 'pages';
     private $DBContentTable = 'content';
     static public function installable() {return __CLASS__;}
     static public function uninstallable() {return __CLASS__;}
     protected $KeepRevisions = true;
     protected $AutoTranslate = true;
 
+
+    public $editable = array(
+        'PageEditor' => EDIT,
+        'PermissionEditor' => EDIT_PRIVILEGES,
+        'MenuEditor' => EDIT,
+        'Delete' => DELETE
+    );
+
     /**
      * Passes the construct call and loads information about the page
      */
     function __construct($id=false, $language=false){
         parent::__construct($id, $language);
-
-        $this->_edit_link = url(array('id' => 'pageEditor', 'edit' => $id, 'view' => 'content', 'lang' => $this->_loadedLanguage), null, false);
+        parent::registerMetadata('template', 'inherit');
     }
 
     /**
@@ -48,25 +50,18 @@ class Page extends MenuItem{
     */
     function __get($property) {
         if($property == 'ID') return parent::__get($property);
-        if(in_array($property, array('template','attachments'))) {
-            $this->pageLoad();
-        }
         if($property == 'author') return $this->getAuthor();
-        elseif(in_array($property, array('content', 'template', 'edit_link', 'Form', 'attachments')))
-        {
-            if($property == 'content') $this->loadContent();
-            if($property == 'template' && empty($this->_template)) return 'inherit';
-            return @$this->{'_'.$property};
+
+        if($property == 'content') {
+            $this->loadContent();
+            return $this->content;
         }
-        elseif(in_array($property, array('title', 'Header'))) {
-            if(!$this->{'_'.$property}) return $this->Name;
+        elseif(in_array($property, array('header', 'title')))
+        {
+            if(@$this->{'_'.$property}) return $this->{'_'.$property};
+            else return $this->Name;
         }
         else return parent::__get($property);
-    }
-
-    function metaget($what) {
-        if($what == 'template') return $this->_template;
-        else return parent::metaget($what);
     }
 
     /**
@@ -78,33 +73,12 @@ class Page extends MenuItem{
     */
     function __set($property, $value) {
     global $USER, $DB;
-        if(in_array($property, array('template', 'content', 'attachments'))) {
-            if($this->ID) {
-                $ipn = '_'.$property;
-                if(in_array($property, array('template','attachments'))) {
-                    $this->pageLoad();
-
-                    if($this->$ipn !== false) {
-                        if($value != @$this->$ipn && ($value || @$this->$ipn)) {
-                            if(@$this->$ipn !== false && $this->may($USER, EDIT)) {
-                                Metadata::$metameta = ($property == 'template'?false:$this->loadedLanguage);
-                                Metadata::set($property, $value);
-                            }
-                        }
-                    }
-
-                    $this->$ipn = $value;
-                }
-                elseif($property == 'content')
-                {
-                    $this->$ipn = $value;
-                }
-            }
-        }
-        elseif(in_array($property, array('title', 'Header'))) {
-            $this->{'_'.$property} = $value;
+        if(in_array($property, array('title', 'header'))) {
+            return ($this->{'_'.$property} = $value);
+        } elseif($property == 'content') {
+            return ($this->$property = $value);
         } else {
-            parent::__set($property, $value);
+            return parent::__set($property, $value);
         }
     }
 
@@ -124,8 +98,19 @@ class Page extends MenuItem{
      * @param string $content The content to add
      */
     function setContent($section, $content) {
-        if(!is_array($this->_content)) $this->_content = array();
-        $this->_content[$section] = $content;
+        if(!is_array($this->content)) $this->content = array();
+        $this->content[$section] = $content;
+    }
+
+    /**
+     * Sets the content of a single section
+     * @param string $section The name of the section
+     * @param string $content The content to add
+     */
+    function getContent($section) {
+        $this->loadContent();
+        if(isset($this->content[$section])) return $this->content[$section];
+        else return @$this->saved_content[$section];
     }
 
     /**
@@ -136,8 +121,10 @@ class Page extends MenuItem{
      */
     function appendContent($section, $content) {
         $this->loadContent();
-        if(!isset($this->_content[$section])) $this->_content[$section] = $content;
-        else $this->_content[$section] .= $content;
+        if(!isset($this->content[$section]))
+            $this->content[$section] = @$this->saved_content[$section];
+
+        $this->content[$section] .= $content;
     }
 
     /**
@@ -160,21 +147,55 @@ class Page extends MenuItem{
                         }
                     }
                 }
-                if($content != @$this->_content[$section]) {
+                if($content != @$this->saved_content[$section]) {
                     $this->registerUpdate();
-                    if($this->KeepRevisions && !$forceNewRevision && $CONFIG->content->revision_separationtime &&
-                    ($lastRevision = $DB->content->getCell(array('id' => $this->ID, 'section' => $section, 'language' => $this->loadedLanguage), 'revision')) >= $time-60*$CONFIG->content->revision_separationtime) {
-                        $DB->content->update(array('content' => $content, 'revision' => time()), array('id' => $this->ID, 'revision' => $lastRevision, 'section' => $section, 'language' => $this->loadedLanguage));
+                    if($this->KeepRevisions && !$forceNewRevision
+                    && $CONFIG->content->revision_separationtime
+                    && ($lastRevision = $DB->content->getCell(array(
+                                                'id' => $this->ID,
+                                                'section' => $section,
+                                                'language' => $this->loadedLanguage
+                                                ), 'revision'))
+                                >= $time-60*$CONFIG->content->revision_separationtime)
+                    {
+                        $DB->content->update(
+                            array(
+                                'content' => $content,
+                                'revision' => time()
+                            ),
+                            array(
+                                'id' => $this->ID,
+                                'revision' => $lastRevision,
+                                'section' => $section,
+                                'language' => $this->loadedLanguage
+                            )
+                        );
                     } else {
-                        if(!$this->KeepRevisions) $DB->content->delete(array('id' => $this->ID, 'section' => $section), false);
-                        $DB->content->insert(array('id' => $this->ID,'content' => $content, 'revision' => time(), 'section' => $section, 'language' => $this->loadedLanguage));
+                        if(!$this->KeepRevisions) {
+                            $DB->content->delete(array(
+                                'id' => $this->ID,
+                                'section' => $section
+                            ), false);
+                        }
+                        $DB->content->insert(array(
+                            'id' => $this->ID,
+                            'content' => $content,
+                            'revision' => time(),
+                            'section' => $section,
+                            'language' => $this->loadedLanguage
+                        ));
                     }
-                    $this->_content[$section] = $content;
+                    $this->saved_content[$section] = $content;
                 }
             }
         }
     }
 
+
+    function lastUpdated($language) {
+        global $DB;
+        return $DB->content->getCell(array('id' => $this->ID, 'language' => $language), 'MAX(revision)');
+    }
     /**
      * Restore a previously saved revision
      * @param $section Which section to restore
@@ -194,52 +215,6 @@ class Page extends MenuItem{
     }
 
     /**
-     * Renders the template
-     * @return unknown_type
-     */
-    function run($template=false){
-        global $Templates, $Controller;
-
-        $this->_Form = new UserForm($this->ID, $this->loadedLanguage);
-        $attachments = explode(',', $this->__get('attachments'));
-        if (is_array($attachments) && count($attachments) > 0) {
-            foreach ($attachments as $att) {
-                // Ignore id=0 and empty strings
-                if (!$att)
-                    continue;
-                $o = $Controller->{(string) $att};
-                if ($o)
-                    $this->appendContent('main', (string) $o);
-                else
-                    $this->appendContent('main', 'missing attachment!');
-            }
-        }
-        $this->appendContent('main', $this->_Form->render());
-        $this->appendContent('main', Comments::displayComments($this->ID));
-        $this->appendContent('main', $this->_Form->viewResult());
-        if($template){
-            $Templates->yweb($template)->render();
-        } else {
-            $Templates->render();
-        }
-    }
-
-    /**
-    * Loads a page from the database
-    * @access public
-    * @return void
-    */
-    function pageLoad($reload=false){
-        global $USER;
-        if(!$this->pLoaded || $reload) {
-            if($this->ID == false) return false;
-            $this->pLoaded = true;
-            $this->getMetadata(array($this->_loadedLanguage, ''), false, array('template', 'attachments'));
-        }
-    }
-    private $pLoaded=false;
-
-    /**
     * Loads the contents of a page
     * @access public
     * @return void
@@ -248,12 +223,12 @@ class Page extends MenuItem{
         if($this->cLoaded && !$force) return;
     global $DB, $USER, $Templates, $CONFIG;
         if($this->ID == false) return;
-        if($force) $this->_content = false;
+        if($force) $this->content = false;
 
         $this->cLoaded = true;
-        if(is_array($this->_content)) {
-            $skip = array_keys($this->_content);
-            $m = $this->_content;
+        if(is_array($this->content)) {
+            $skip = array_keys($this->content);
+            $m = $this->content;
         } else {
             $skip = $m = array();
         }
@@ -261,7 +236,7 @@ class Page extends MenuItem{
         // READ THIS: This part is not obvious at all!
         // Language list, NB: reverse preferred order, fallback languages starting with least preferred language first continued in increasing relevance and primary language last
         $languagelist = "'".join("','",array_unique(array('en',$this->loadedLanguage)))."'";
-        $this->_content = array_merge($m,
+        $this->saved_content = array_merge($m,
             (array)@$DB->asList("
 SELECT t1.`section`,t1.`content`
 FROM
@@ -292,7 +267,7 @@ WHERE t1.`id` = ".(int)$this->ID."
 
 
         if($this->AutoTranslate && !$prohibit_translation && $USER->settings['language'] && $USER->settings['auto_Translate'] && $CONFIG->Site->auto_Translate === 'yes') {
-            $diff = array_diff($Templates->current->sections, array_keys($this->_content));
+            $diff = array_diff($Templates->current->sections, array_keys($this->content));
             if(!empty($diff)) {
                 $c = $DB->content->asList(array("id" => $this->ID, 'section' => $diff), 'section,content,language', false, true, "revision DESC");
                 $sections = $content = $languages = array();
@@ -307,7 +282,7 @@ WHERE t1.`id` = ".(int)$this->ID."
                     foreach($translation as &$tr) {
                         $tr = '<div class="warn_autotranslate">'.__('Warning: auto-translated text').'</div>'.$tr;
                     }
-                    $this->_content = array_combine($sections, $translation);
+                    $this->content = array_combine($sections, $translation);
                 }
             }
         }
@@ -322,14 +297,6 @@ WHERE t1.`id` = ".(int)$this->ID."
      */
      function install() {
         global $DB;
-/*		$DB->query("CREATE TABLE IF NOT EXISTS `".Page::$DBTable."` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `description` text NOT NULL,
-  `template` varchar(255) NOT NULL,
-  PRIMARY KEY  (`id`),
-  KEY `title` (`name`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;");*/
         $DB->query("CREATE TABLE IF NOT EXISTS `".Page::$DBContentTable."` (
   `id` mediumint(9) NOT NULL default '0',
   `section` varchar(255) character set utf8 NOT NULL default '',
@@ -339,13 +306,13 @@ WHERE t1.`id` = ".(int)$this->ID."
   KEY `section` (`section`),
   KEY `id` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_swedish_ci;");
-        return 1;
 
 
         $CONFIG->Site->setType('auto_Translate', 'select', array('no' => 'No', 'yes' => 'Yes'));
         $CONFIG->content->setDescription('revision_separationtime', 'Minutes of separation between two saves for them to be counted as same revision');
 
         $CONFIG->content->setType('filters', 'not_editable');
+        return 1;
     }
 
     /**
@@ -355,7 +322,6 @@ WHERE t1.`id` = ".(int)$this->ID."
     function uninstall() {
         global $DB, $USER;
         if(!$USER->may(INSTALL)) return false;
-//		$DB->dropTable(self::$DBTable);
         $DB->dropTable(self::$DBContentTable);
         return true;
     }
@@ -365,13 +331,47 @@ WHERE t1.`id` = ".(int)$this->ID."
      * @see solidbase/lib/MenuItem#delete()
      */
     function delete() {
-        global $USER, $DB;
-        if($this->may($USER, DELETE)) {
+        global $DB;
+        if($this->mayI(DELETE)) {
             $DB->metadata->delete($this->ID);
             $DB->content->delete($this->ID, false);
             $DB->spine->delete($this->ID);
             return parent::delete();
-        } return false;
+        } else return false;
+    }
+
+
+    /**
+     * Renders the template
+     * @return unknown_type
+     */
+    function run($template=false){
+        if($_REQUEST['changes'] == 'ok') new Flash(__('Your changes were saved'), 'confirmation');
+
+        global $Templates, $Controller;
+
+        $this->_Form = new UserForm($this->ID, $this->loadedLanguage);
+        $attachments = explode(',', $this->__get('attachments'));
+        if (is_array($attachments) && count($attachments) > 0) {
+            foreach ($attachments as $att) {
+                // Ignore id=0 and empty strings
+                if (!$att)
+                    continue;
+                $o = $Controller->{(string) $att};
+                if($o)
+                    $this->appendContent('main', (string) $o);
+                else
+                    $this->appendContent('main', 'missing attachment!');
+            }
+        }
+        $this->appendContent('main', $this->_Form->render());
+        $this->appendContent('main', Comments::displayComments($this->ID));
+        $this->appendContent('main', $this->_Form->viewResult());
+        if($template){
+            $Templates->$template->render();
+        } else {
+            $Templates->render();
+        }
     }
 }
 ?>

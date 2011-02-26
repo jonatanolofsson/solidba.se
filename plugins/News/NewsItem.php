@@ -1,57 +1,21 @@
 <?php
 class NewsItem extends Page {
-    private $_Cal = false;
-    private $_Image = false;
-    private $_Activated = false;
-    private $_LockedPos = false;
     private $Publish = false;
     public $privilegeGroup = 'hidden';
 
+    public $editable = array('NewsEditor' => EDIT);
+
     function __construct($id, $language=false) {
         parent::__construct($id, $language);
-        $this->_edit_link = url(array('id' => 'eventAdmin', 'edit' => $id), null, false);
 
-        $this->getMetadata('', false, array('Cal', 'Image', 'Activated', 'LockedPos'));
+        $this->registerMetadata(array('Cal', 'Image', 'LockedPos'));
     }
 
     function __get($property) {
-        if(in_array($property, array('Cal', 'Image', 'Activated', 'LockedPos'))) {
-            return $this->{'_'.$property};
-        } elseif($property == 'Publish') {
+        if($property == 'publish') {
             $r = $this->getActive();
             return $r['start'];
         } else return parent::__get($property);
-    }
-
-    function __set($property, $value) {
-        $ipn = '_'.$property;
-        if(in_array($property, array('Cal', 'Image', 'Activated', 'LockedPos'))) {
-            if($property == 'Activated' || $property == 'LockedPos')
-            {
-                 $value2 = $value;
-                 $value = (int)(bool)$value;
-            }
-            if($value != @$this->$ipn && ($value || @$this->$ipn)) {
-                if(@$this->$ipn !== false && $this->mayI(EDIT)) {
-                    if(!$this->mayI(EDIT)) return false;
-                    if($property == 'Activated')
-                    {
-                        if(!$this->mayI(PUBLISH)) return false;
-                    }
-                    elseif($property == 'Cal') {
-                        $this->registerUpdate();
-                        if(is_object($value)) {
-                            $this->_Cal = $value;
-                            $value = $value->ID;
-                        }
-                    }
-                    Metadata::set($property, $value);
-                }
-            }
-            $this->$ipn = (($property=='Activated'||$property=='LockedPos')&&$value2==''?$value2:$value);
-        } elseif($property == 'Publish') {
-            $this->setActive($value);
-        } else parent::__set($property, $value);
     }
 
     /**
@@ -92,7 +56,7 @@ class NewsItem extends Page {
      * @param int $limit Max number of words in the text
      * @return HTML
      */
-    function getText($limit=false, $viewer=true) {
+    function getText($limit=false) {
         if(!$limit) return @$this->content['Text'];
         $r = '<p>'.@$this->getPreamble($limit).'</p>';
         $r .= '<p class="read_more"><a href="'.url(array('id' => $this->ID)).'">'.__('Read more').'</a></p>';
@@ -110,9 +74,9 @@ class NewsItem extends Page {
      * Returns the title of the NewsItem
      * @return HTML
      */
-    function getTitle($small=false) {
+    function getTitle($small=false, $link=false) {
         $h = pow(2, (int)(bool)$small);
-        return '<h'.$h.'>'.$this->Name.'</h'.$h.'>';
+        return ($link?'<a href="'.$this->ID.'" class="title">':'').'<h'.$h.'>'.$this->Name.'</h'.$h.'>'.($link?'</a>':'');
     }
 
     /**
@@ -122,10 +86,11 @@ class NewsItem extends Page {
      * @return HTML
      */
     function getImage($maxWidth=false, $maxHeight=false, $link=false) {
-        if($this->_Image) {
+        $img = $this->Image;
+        if($img) {
             global $Controller;
-            if($img = $Controller->{(string)$this->_Image}(READ)) {
-                $url = array('id' => $this->_Image);
+            if($Controller->{(string)$img}(READ)) {
+                $url = array('id' => $img);
                 if($maxWidth) {
                     $_REQUEST->setType('mw', 'numeric');
                     $url['mw'] = (string)$maxWidth;
@@ -176,16 +141,12 @@ class NewsItem extends Page {
         }
     }
 
-    function isActive($what=false, $when=false)
-    {
-        return ($this->_Activated && parent::isActive($what, $when));
-    }
-
     function getPreamble($limit=false, &$clipping_occured=false) {
         global $CONFIG;
 /* 		if(!$limit)	$limit = ($CONFIG->News->Preamble_size ? $CONFIG->News->Preamble_size : 300); */
         return dntHash::deHash(lineTrim(
-                    strip_tags(preg_replace_callback(array('#<(a|b)[^>]*?>.*?</\1>#i', '#<br[^>]*?>#i'), array('dntHash', 'hash'), $this->content['Text'])),
+                    strip_tags(preg_replace_callback(array('#<(a|b)[^>]*?>.*?</\1>#i', '#<br[^>]*?>#i'), array('dntHash', 'hash'),
+                            $this->getContent('Text'))),
                     $limit,
                     '...',
                     $clipping_occured));
@@ -226,10 +187,11 @@ class NewsItem extends Page {
             case 'new':
             default:
                 return '<div class="articleHolder">'.
-                    $this->getTitle().
-                    $this->getInfo().
+                    $this->getTitle(false,true).
+/*                     $this->getInfo(). */
+					'<p class="date">'.$this->getDate(true).'</p>'.
                     '<div class="articleImg">'.$this->getImage(Design::getPxWidth(10),false, true).'</div>'.
-                    $this->getText(300,false,false).
+                    '<p>'.@$this->getPreamble(300).'</p>'.
                     '</div>';
                 break;
         }

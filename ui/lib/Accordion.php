@@ -12,7 +12,7 @@
  */
 class Accordion{
     private $tabs;
-    public $params = false;
+    public $params = 'autoHeight:false,collapsible:true,active:false';
     /**
      * Constructor
      * Usage example:
@@ -30,7 +30,7 @@ class Accordion{
         $a = func_get_args();
         $this->tabs = $a;
     }
-    
+
     /**
      * Returns the output when asked to convert to string
      * @return string
@@ -48,7 +48,8 @@ class Accordion{
         JS::loadjQuery();
         JS::raw('$(function() {$(".ui-accordion-container").accordion({ header: "h3" '.($this->params ? ','.$this->params : '').'});});');
         Head::add($CONFIG->UI->jQuery_theme.'/jquery-ui-*', 'css-lib');
-        
+        Head::add('.ui-accordion-container li {width: 100%;}', 'css-raw');
+
         $r  = '<ol class="ui-accordion-container">';
         $mode=0;
         $title=false;
@@ -62,9 +63,9 @@ class Accordion{
                 $r .= '
                     <li>
                         <h3><a href="#">'.$title.'</a></h3>
-                        <div>'.$arg.'<p><small>&nbsp;</small></p></div>
+                        <div>'.$arg.'</div>
                     </li>';
-                
+
                 $mode = 0;
                 $selected = false;
                 $title = false;

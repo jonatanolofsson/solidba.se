@@ -65,15 +65,15 @@ class Mailer extends page {
                                 'send' => strtotime($_POST['sendd'].' '.$_POST['sendt']),
                                 'override_membercheck' => ($_POST['bypass'] && $Controller->{(string)ADMIN_GROUP}(OVERRIDE)->isMember($USER))
                             ), array('msg_id' => $msg['msg_id']));
-                                    
+
                             if(!($_POST['personal'] || $approved || $Controller->{(string)ADMIN_GROUP}(OVERRIDE)->isMember($USER))) new Notification(
                                 __('New email'),
                                 __('A new email has been queued on ').url(array('id' => 'mailer')),
                                 $Controller->{ADMIN_GROUP}(OVERRIDE)
                             );
-                            
+
                             $_POST->clear('newMail', 'from','recipients','subject','message','personal','send', 'bypass');
-                            
+
                             if($_POST['save']) {
                                 Flash::create(__('Changes were saved'), 'confirmation');
                             }
@@ -112,7 +112,7 @@ class Mailer extends page {
                     'send' => ($_POST['send']?strtotime($_POST['send']):time()),
                     'override_membercheck' => ($_POST['bypass'] && $Controller->{(string)ADMIN_GROUP}(OVERRIDE)->isMember($USER))
                 ));
-                        
+
                 if(!($_POST['personal'] || $approved || $Controller->{(string)ADMIN_GROUP}(OVERRIDE)->isMember($USER))) new Notification(
                     __('New email'),
                     __('A new email has been queued on ').url(array('id' => 'mailer')),
@@ -157,21 +157,21 @@ class Mailer extends page {
                     $g = $Controller->getClass('Group', OVERRIDE, false, false);
                 elseif($msg['author'] != $USER->ID && $author = $Controller->{$msg['author']}('User'))
                     $g = $author->groups + $USER->groups;
-                else 
+                else
                     $g = $USER->groups;
-                    
+
                 $valid_senders = array();
                 foreach($g as $gr) if($gr->getEmail()) $valid_senders[$gr->ID] = $gr->Name;
                 asort($valid_senders);
-    
+
                 unset($valid_senders[EVERYBODY_GROUP]);
                 unset($valid_senders[MEMBER_GROUP]);
-                
+
                 JS::loadjQuery(false);
                 Head::add('$(function(){$(\'#recslide\').css("cursor", "pointer").toggle(function(){$(\'#recipients\').animate({height: 200}, 500)},function(){$(\'#recipients\').animate({height: 50}, 500)});});', 'js-raw');
                 $eform = new Form('editMail', url(null, 'id'), false);
                 $this->setContent('header', __('Edit email: ').$msg['subject']);
-                
+
                 $recip=(@$msg['recipients'][0]?$Controller->{$msg['recipients'][0]}(OVERRIDE, 'Page'):false);
                 $this->setContent('main','<div class="nav"><a href="'.url(null, 'id').'">'.icon('small/arrow_left').__('Back').'</a></div>'.
                     $eform->set(
@@ -278,14 +278,14 @@ class Mailer extends page {
         }
         $r='';
         if(mysql_num_rows($resource)) {
-            $table = new Table(new tableheader(__('Author'), __('From'), __('Recipients'), __('Subject')));
+            $table = new Table(new Tableheader(__('Author'), __('From'), __('Recipients'), __('Subject')));
             $i=0;
             while($email = Database::fetchAssoc($resource)) {
                 $recipients = $Controller->get($email['recipients']);
                 $recs = array();
                 foreach($recipients as $re) $recs[]= $re->link();
-                
-                $table->append(new tablerow(
+
+                $table->append(new Tablerow(
                     $Controller->{$email['author']}->link(),
                     ($email['from']?$Controller->{$email['from']}:__('Default')),
                     join(', ', $recs),

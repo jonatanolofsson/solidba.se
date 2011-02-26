@@ -21,6 +21,7 @@ define('EDIT_PRIVILEGES',8);
 define('INSTALL', 16);
 define('PUBLISH', 32);
 define('ANYTHING', READ|EDIT|DELETE|EDIT_PRIVILEGES|INSTALL|PUBLISH);
+define('EVERYTHING', ANYTHING);
 define('OVERRIDE', 'OVERRIDE');
 
  /**
@@ -155,25 +156,25 @@ class Controller{
     /**
      * This is the function that retrieves a single object
      * @param integer $ID Spine ID (or alias) of the object
-     * @param integer $aLEVEL Accesslevel that should be tested against
+     * @param integer $aLevel Accesslevel that should be tested against
      * @param User $u User object that the permissions should be tested for
+     * @param bool $keep Set to false to disable caching
      * @return object Returns false if the object is not found or permissions deny access
      */
-    function retrieve($id, $aLEVEL=ANYTHING, $u=false, $keep = true) {
+    function retrieve($id, $aLevel=ANYTHING, $u=false, $keep = true) {
     global $USER, $DB;
-    $d = ($id==3);
-    if(!$u) $u = $USER;
         if(is_numeric($id)) {
             if(isset($this->OBJECTS[$id])) {
-                if($aLEVEL != OVERRIDE && method_exists($this->OBJECTS[$id], 'may') && !$this->OBJECTS[$id]->may($u, $aLEVEL)) {
+                if($aLevel != OVERRIDE && method_exists($this->OBJECTS[$id], 'may')
+                && !($u?$this->OBJECTS[$id]->may($u, $aLevel):$this->OBJECTS[$id]->mayI($aLevel))) {
                     return false;
                 }
                 return $this->OBJECTS[$id];
             }
             else {
-                return $this->fetch($id, $aLEVEL, $u, $keep);
+                return $this->fetch($id, $aLevel, $u, $keep);
             }
-        } else return $this->alias($id, $aLEVEL, $u, $keep);
+        } else return $this->alias($id, $aLevel, $u, $keep);
     }
 
     /**
@@ -183,11 +184,12 @@ class Controller{
      * $PAGE = $Controller->alias('frontpage');
      * </code>
      * @param string $alias Alias that should be looked for
-     * @param integer $aLEVEL Accesslevel that should be tested against
+     * @param integer $aLevel Accesslevel that should be tested against
      * @param User $u User object that the permissions should be tested for
+     * @param bool $keep Set to false to disable caching
      * @return bool|object
      */
-    function alias($alias, $aLEVEL=ANYTHING, $u=false, $keep = true) {
+    function alias($alias, $aLevel=ANYTHING, $u=false, $keep = true) {
         global $DB;
         if (@empty($alias)) {
             return false;
@@ -199,7 +201,7 @@ class Controller{
         }
 
         if($id){
-            return $this->retrieve($id, $aLEVEL, $u, $keep);
+            return $this->retrieve($id, $aLevel, $u, $keep);
         }
         else return false;
     }
@@ -207,21 +209,21 @@ class Controller{
     /**
      * Fetch an object from the database and initialize it. Returns false if the classname is unknown
      * @param integer $ID Spine ID of the object(s)
-     * @param integer $aLEVEL Accesslevel that should be tested against
+     * @param integer $aLevel Accesslevel that should be tested against
      * @param User $u User object that the permissions should be tested for
+     * @param bool $keep Set to false to disable caching
      * @return object
      */
-    private function fetch($what, $aLEVEL=ANYTHING, $u=false, $keep = true) {
+    private function fetch($what, $aLevel=ANYTHING, $u=false, $keep = true, $class = false) {
     global $DB, $USER;
-        if(!$u) $u = $USER;
-        if(!is_numeric($u) && $u) $uid = $u->ID;
-
         $return = array();
 
-        $res = $DB->spine->asMDList(array('id' => $what), 'class,id', false, false, false, true);
+        $where = array('id' => $what);
+        if($class) $where['class'] = $class;
+        $res = $DB->spine->asMDList($where, 'class,id', false, false, false, true);
         foreach($res as $class => $ids) {
             if(class_exists($class)) {
-                call_user_func(array($class, 'preload'), $ids, $aLEVEL);
+                call_user_func(array($class, 'preload'), $ids, $aLevel);
                 foreach($ids as $id) {
                     if(!isset($this->INSTANTIATING[$id]))
                     {
@@ -231,11 +233,11 @@ class Controller{
                         unset($this->INSTANTIATING[$id]);
 
                         if($keep) $this->OBJECTS[$id] = $New_Object;
-                        if($aLEVEL != OVERRIDE && method_exists($New_Object, 'may')
-                            && !(
-                                    ($uid == $USER->ID && $New_Object->mayI($aLEVEL))
-                                 || ($uid != $USER->ID && $New_Object->may($u, $aLevel))
-                                 )) continue;
+                        if($aLevel != OVERRIDE && method_exists($New_Object, 'may')
+                        && !($u?$New_Object->may($u, $aLevel):$New_Object->mayI($aLevel)))
+                        {
+                            continue;
+                        }
 
                         if(!is_array($what)) return $New_Object;
                         $return[$New_Object->ID] = $New_Object;
@@ -253,6 +255,8 @@ class Controller{
      * $newUser = $Controller->newObj('User);
      * </code>
      * @param string $class name of the class that should be instatiated
+     * @param mixed $arg Argument to pass as a second argument (after the id) to the new object
+     * @param bool $keep Set to false to disable caching
      * @return bool|object
      */
     function newObj($class, $arg=false, $keep=true){
@@ -293,50 +297,56 @@ class Controller{
         global $USER;
         if($id == 'newObj') return $this->$id(@$args[0]);
 
-        $aLEVEL = ANYTHING;
+        $aLevel = ANYTHING;
         $obj = $this->retrieve($id, OVERRIDE, false, !(in_array(false, $args, true)));
         if(!$obj) return false;
         $u = $USER;
         foreach($args as $con) {
             if(is_string($con) && $con !== OVERRIDE && get_class($obj) != $con) return false;
             elseif(is_a($con, 'User')) $u = $con;
-            elseif(is_int($con) || $con === OVERRIDE) $aLEVEL = $con;
+            elseif(is_int($con) || $con === OVERRIDE) $aLevel = $con;
         }
-        if($aLEVEL !== OVERRIDE && !$obj->may($u, $aLEVEL)) return false;
+        if($aLevel !== OVERRIDE && !$obj->may($u, $aLevel)) return false;
         else return $obj;
     }
 
     /**
      * retrieve a set (array) of objects
      * @param array|integer $set The id's of the objects that are requested
-     * @param integer $aLEVEL The accesslevel which all objects will be tried against.
+     * @param integer $aLevel The accesslevel which all objects will be tried against.
      * @param User $u The user which the accesslevel will be tried for
+     * @param bool $keep Set to false to disable caching
      * @return array Array of objects
      */
-    function get($set, $aLEVEL = ANYTHING, $u = false, $keep = true){
+    function get($set, $aLevel = ANYTHING, $u = false, $keep = true, $class = false){
+        if(is_string($aLevel) && $aLevel !== OVERRIDE) {
+            $class = $aLevel;
+            $aLevel = ANYTHING;
+        }
+
         if($set == false) return array();
         $objects = array();
         if(!is_array($set)) {
-            return $this->retrieve($set, $aLEVEL, $u, $keep);
+            return $this->retrieve($set, $aLevel, $u, $keep);
         }
         $set = flatten($set);
         $loadedObjects = array_keys($this->OBJECTS);
         $avail = array_intersect($set, $loadedObjects);
         $fetch = array_diff($set, $loadedObjects);
         $result = array();
-        if($avail) $result = $this->filter($this->OBJECTS, $aLEVEL, $u);
-        if($fetch) $fetch = $this->fetch($fetch, $aLEVEL, $u, $keep);
+        if($avail) $result = $this->filter($this->OBJECTS, $aLevel, $u, $class);
+        if($fetch) $fetch = $this->fetch($fetch, $aLevel, $u, $keep, $class);
         if($fetch) $result += $fetch;
         return arrayKeySort($result, $set);
     }
 
-    function filter($set, $aLEVEL = ANYTHING, $u = false) {
-        if($aLEVEL === OVERRIDE) return $set;
+    function filter($set, $aLevel = ANYTHING, $u = false, $class = false) {
+        if($aLevel === OVERRIDE) return $set;
         global $USER;
-        if(!$u) $u = $USER;
         $newset = array();
         foreach($set as $id => $obj) {
-            if($obj->may($u, $aLEVEL)) $newset[$id] = $obj;
+            if(($u?$obj->may($u, $aLevel):$obj->mayI($aLevel))
+            && ($class?get_class($obj)==$class:true)) $newset[$id] = $obj;
         }
         return $newset;
     }
@@ -344,16 +354,17 @@ class Controller{
     /**
      * retrieve first allowed from set
      * @param array|integer $set The id's of the objects that are requested
-     * @param integer $aLEVEL The accesslevel which all objects will be tried against.
+     * @param integer $aLevel The accesslevel which all objects will be tried against.
      * @param User $u The user which the accesslevel will be tried for
+     * @param bool $keep Set to false to disable caching
      * @return object First object to match permissions
      */
-    function any($set, $aLEVEL = ANYTHING, $u = false, $keep = true){
+    function any($set, $aLevel = ANYTHING, $u = false, $keep = true){
         if($set == false) return array();
         $objects = array();
         if(!is_array($set)) $set = array($set);
         foreach($set as $id) {
-            if($o = $this->retrieve($id, $aLEVEL, $u, $keep)) return $o;
+            if($o = $this->retrieve($id, $aLevel, $u, $keep)) return $o;
         }
         return false;
     }
@@ -362,12 +373,12 @@ class Controller{
      * Returns at most $nr of objects
      * @param array|resource $source Array or MySQL resource with an 'id' field
      * @param integer $nr Maximum number of returned
-     * @param integer $aLEVEL The accesslevel which all objects will be tried against.
+     * @param integer $aLevel The accesslevel which all objects will be tried against.
      * @param User $u The user which the accesslevel will be tried for
      * @return object First object to match permissions
      * @return array Array of objects
      */
-    function max($source, $nr, $aLEVEL=ANYTHING, $u=false, $keep = true) {
+    function max($source, $nr, $aLevel=ANYTHING, $u=false, $keep = true) {
         $result = array();
         for($i=0;$i<$nr;) {
             if(is_resource($source)) {
@@ -378,7 +389,7 @@ class Controller{
                 $currentID = next($source);
                 if($currentID === false) return $result;
             } else return false;
-            if($current = $this->retrieve($currentID, $aLEVEL, $u, $keep)) {
+            if($current = $this->retrieve($currentID, $aLevel, $u, $keep)) {
                 $result[$currentID] = $current;
                 $i++;
             }
@@ -426,14 +437,14 @@ class Controller{
     /**
      * Fetch all objects of a specified class
      * @param $class Which class to fetch
-     * @param $aLEVEL Which accesslevel should be applied
+     * @param $aLevel Which accesslevel should be applied
      * @param $u Which user should be tested for permission
      * @param $keep Wether to keep object in cache
      * @return array Array och objects
      */
-    function getClass($class, $aLEVEL = ANYTHING, $u = false, $keep = true) {
+    function getClass($class, $aLevel = ANYTHING, $u = false, $keep = true) {
         global $DB;
-        return $this->get($DB->spine->asList(array('class' => $class), 'id'), $aLEVEL, $u, $keep);
+        return $this->get($DB->spine->asList(array('class' => $class), 'id'), $aLevel, $u, $keep);
     }
 }
 ?>

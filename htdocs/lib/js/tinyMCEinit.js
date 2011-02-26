@@ -5,22 +5,20 @@
     		convert_urls: false,
     		editor_selector : "mceEditor",
     		plugins : "safari,pagebreak,style,layer,table,save,advhr,advimage,advlink,emotions,iespell,insertdatetime,preview,media,searchreplace,print,contextmenu,paste,directionality,fullscreen,noneditable,visualchars,nonbreaking,xhtmlxtras,template",
-    		theme_advanced_buttons1 : "formatselect,template,|,bold,italic,underline,|,hr,bullist,numlist,|,undo,redo,|,link,unlink,anchor,image,,|,insertdate,inserttime,|,preview,code,fullscreen,cleanup",
+    		theme_advanced_buttons1 : "formatselect,|,bold,italic,underline,|,bullist,numlist,|,link,unlink,image,|,preview,code",
     		theme_advanced_buttons2 : "",
     		theme_advanced_buttons3 : "",
     		theme_advanced_buttons4 : "",
     		theme_advanced_toolbar_location : "top",
     		theme_advanced_toolbar_align : "left",
-    		theme_advanced_statusbar_location : "bottom",
+/*     		theme_advanced_statusbar_location : "bottom", */
     		object_resizing: false,
     		content_css : "templates/yweb/style.css",
     		theme_advanced_blockformats : "h1,h2,h3,p",
-    		template_external_list_url : "lib/elements.php",
     		template_popup_width : "700px",
     		template_popup_height : "400px",
     		height: '300px',
     		width: '90%',
-    		
     		template_replace_values : { //AUTOFILL-function
 				className : function(element) {
 					// do something and then:
@@ -36,6 +34,7 @@ $('select.editor_type').change(function()
 	var id = $(this).parent().next().attr('id');
 	var editor_type = $(this).val();
     tinyMCE.execCommand('mceRemoveControl', false, id);
+    removeEditor();
     //select which toolbar to be used
     switch (editor_type)
     {
@@ -46,7 +45,7 @@ $('select.editor_type').change(function()
     		theme : "advanced",
     		convert_urls: false,
     		plugins : "safari,pagebreak,style,layer,table,save,advhr,advimage,advlink,emotions,iespell,insertdatetime,preview,media,searchreplace,print,contextmenu,paste,directionality,fullscreen,noneditable,visualchars,nonbreaking,xhtmlxtras,template",
-    		theme_advanced_buttons1 : ",bold,italic,underline,|,outdent,indent,blockquote,|,justifyleft,justifycenter,justifyright,justifyfull,|formatselect,fontselect,fontsizeselect",
+    		theme_advanced_buttons1 : "bold,italic,underline,|,outdent,indent,blockquote,|,justifyleft,justifycenter,justifyright,justifyfull,|formatselect,fontselect,fontsizeselect",
     		theme_advanced_buttons2 : "pasteword,|bullist,numlist,|,undo,redo,|,link,unlink,anchor,image,cleanup,code,|,insertdate,inserttime,preview,|,forecolorfullscreen|pagebreak",
     		theme_advanced_buttons3 : "",
     		theme_advanced_buttons4 : "",
@@ -78,6 +77,33 @@ $('select.editor_type').change(function()
     		width: '90%'
     		});
          break;
+	case "ckeditor":
+    	createEditor(id);
+        break;
      }
 });
 });
+
+var editor;
+
+function createEditor(id)
+{
+	if ( editor )
+		return;
+
+	//skapa ny
+	editor = CKEDITOR.replace(id,{
+        customConfig : '/3rdParty/ckeditor/config.js'
+    });
+}
+
+function removeEditor()
+{
+	if ( !editor )
+		return;
+
+	// Destroy the editor.
+	editor.destroy();
+	editor = null;
+}
+

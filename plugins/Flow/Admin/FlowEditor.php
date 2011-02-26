@@ -43,7 +43,7 @@ class FlowEditor extends Page {
     }
 
     /**
-     * In this function, most actions of the module are carried out 
+     * In this function, most actions of the module are carried out
      * and the page generation is started, distibuted and rendered.
      * @return void
      * @see solidbase/lib/Page#run()
@@ -68,13 +68,13 @@ class FlowEditor extends Page {
         $_POST->setType('etxt', 'any');
         $_POST->setType('eupdate', 'any');
         $_POST->setType('flows', 'string', true);
-    
+
         if($_REQUEST['del']) {
             if($Controller->{$_REQUEST['del']} && $Controller->{$_REQUEST['del']}->delete()) {
                 Flash::create(__('Item removed'), 'confirmation');
             }
         }
-        
+
         /**
          * Save item
          */
@@ -139,7 +139,7 @@ class FlowEditor extends Page {
                 }
             }
         } while(false);
-        
+
 
         /**
          * Here, the page request and permissions decide what should be shown to the user
@@ -153,18 +153,18 @@ class FlowEditor extends Page {
 
         $Templates->admin->render();
     }
-    
+
     function editView($id, $language) {
         global $Controller, $DB;
         $obj = new FlowItem($id, $language);
         if(!$obj) return false;
         if(!$obj->mayI(EDIT)) errorPage(401);
-            
+
         $this->setContent('header', __('Editing').' <i>"'.$obj.'"</i>');
-        
+
         if($_REQUEST['view'] == 'content') {
             $form = new Form('editN');
-                
+
             $translate = array();
             if(!@$obj->content['Text'] && !$_POST['etxt']) {
                 $translate[] = 'Text';
@@ -179,14 +179,14 @@ class FlowEditor extends Page {
                     AND t1.id='".Database::escape($id)."'
                     AND (t1.section='".implode("' OR t1.section='", Database::escape($translate, true))."')
                     ORDER BY t1.revision DESC", true);
-                
+
                 foreach($newest as $s => $translation) {
                     $trFrom[] = $translation['language'];
                     $trText[] = $translation['content'];
                     $trSect[] = $s;
                 }
             }
-            
+
             if(!$obj->Name && !$_POST['etitle']) {
                 if($info = $DB->metadata->getRow(array('id' => $obj->ID, 'field' => 'Name'), 'value, metameta')) {
                     $trFrom[] = $info['metameta'];
@@ -209,7 +209,7 @@ class FlowEditor extends Page {
             );
             $calendarSettings->params = 'collapsible:true'.($cal||$_POST['einscal']?'':',active:false');
             $active = $obj->getActive();
-            $this->setContent('main', 
+            $this->setContent('main',
                 '<div class="nav"><a href="'.url(null, array('id', 'edit')).'">'.icon('small/arrow_left').__('Back').'</a></div>'
                 .$form->collection($calendarSettings,
                     new Hidden('esave', 1),
@@ -241,8 +241,8 @@ class FlowEditor extends Page {
      */
     private function mainView() {
         global $USER, $CONFIG, $DB, $Controller;
-        
-        
+
+
 
         $form = new Form('newEvent');
 
@@ -276,17 +276,17 @@ class FlowEditor extends Page {
                             $this->flowList()
                             );
     }
-    
+
     function flowList()
     {
         $r = array();
-        
+
         $flows = Flow::flows();
         foreach($flows as $f)
         {
-            $r[] = '<span class="fixed-width">'.$f.'</span><div class="tools">'.icon('small/pencil', __('Edit flow'), $f->edit_link).icon('small/feed', __('View flow'), $f->link).'</div>';
+            $r[] = '<span class="fixed-width">'.$f.'</span><div class="tools">'.icon('small/pencil', __('Edit flow'), url(array('edit' => $f->ID))).icon('small/feed', __('View flow'), $f->link).'</div>';
         }
-        
+
         return listify($r);
     }
 }

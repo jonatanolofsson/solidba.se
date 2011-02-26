@@ -56,6 +56,16 @@ class Config {
     }
 
     /**
+    * Checks if a property is set
+    * @access public
+    * @param string $property The name of the property
+    * @return mixed
+    */
+    function __isset($property){
+        return isset($this->sections[$property]);
+    }
+
+    /**
     * Loads configuration from a file source
     * @access public
     * @param string $src The path to the file to be loaded
@@ -192,6 +202,16 @@ class ConfigSection {
             $DB->config->update(array('value' => $value), array('property' => $property, 'section' => $this->NAME), true);
             $this->DATA[$property] = $value;
         }
+    }
+
+    /**
+    * Checks if a section is set
+    * @access public
+    * @param string $property The name of the variable or Configuration section
+    * @return mixed
+    */
+    function __isset($property){
+        return isset($this->DATA[$property]);
     }
 
     /**

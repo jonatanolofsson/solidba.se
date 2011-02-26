@@ -6,17 +6,23 @@
  * @author Jonatan Olofsson [joolo]
  * @version 1.0
  * @license http://creativecommons.org/licenses/by-nc/3.0/ Creative Commons Attribution-Noncommercial 3.0 Unported License
- * @package Filesystem
+ * @package filesystem
  */
 
 /**
  * The folder class represents a folder in the private files directory
- * @package Filesystem
+ * @package filesystem
  */
 class Folder extends File{
-    private $Files=array();
-    private $Folders=array();
+    private $files=array();
+    private $folders=array();
     protected $Type='Folder';
+
+    public $editable = array(
+        'Upload' => EDIT,
+        'PermissionEditor' => EDIT_PRIVILEGES,
+        'SubDir' => EDIT
+    );
 
     /**
      * Redirects to File::__construct()
@@ -25,6 +31,21 @@ class Folder extends File{
     function __construct($fullpath=false, $parent=false) {
         parent::__construct($fullpath, $parent);
         $this->icon = 'small/folder_picture';
+        global $Controller;
+        if(!$this->isRoot()) {
+            $this->editable['FileMover'] = EDIT;
+            $this->editable['Delete'] = DELETE;
+            $this->alias = 'fileRoot';
+        }
+    }
+
+    function isRoot() {
+        return ($this->path == $this->rootDir());
+    }
+
+    function __toString() {
+        if($this->isRoot()) return __('Root directory');
+        else return parent::__toString();
     }
 
     /**
@@ -32,7 +53,7 @@ class Folder extends File{
      * @see lib/File#__get($property)
      */
     function __get($property) {
-        if(in_array($property, array('Files', 'Folders'))) {
+        if(in_array($property, array('files', 'folders'))) {
             $this->loadStructure();
             return $this->$property;
         } else return parent::__get($property);
@@ -45,7 +66,7 @@ class Folder extends File{
      */
     function file($name) {
         $this->loadStructure();
-        return @$this->Files[$name];
+        return @$this->files[$name];
     }
 
     /**
@@ -55,7 +76,7 @@ class Folder extends File{
      */
     function folder($name) {
         $this->loadStructure();
-        return @$this->Folders[$name];
+        return @$this->folders[$name];
     }
 
 
@@ -69,7 +90,7 @@ class Folder extends File{
      */
     static function dirBox($dir, $max=false, $sortNewest=true) {
         $dirObj = new Folder($dir);
-        $files = $dirObj->__get('Files');
+        $files = $dirObj->__get('files');
         if($sortNewest) {
             uasort($files, create_function('$a,$b', 'return (($a->edited)<($b->edited)?-1:($a->edited == $b->edited?0:1));'));
         }
@@ -98,93 +119,14 @@ class Folder extends File{
         /**
          * User input types
          */
-        $_REQUEST->setType('del', 'numeric');
-        $_REQUEST->setType('fname', 'string');
         $_REQUEST->setType('action', 'string');
         $_REQUEST->setType('popup', 'string');
         $_REQUEST->setType('filter', 'string');
-        $_REQUEST->setType('referrer', 'string');
-        $_REQUEST->setType('uploadToFolder', 'any');
-        $_REQUEST->setType('uncompress', 'any');
-        $_REQUEST->addType('edit', 'numeric');
 
         if(!$this->may($USER, READ)) errorPage(401);
         else {
-            if($_REQUEST['del'] && $v = $Controller->{$_REQUEST['del']}(DELETE)) {
-                $pid = @$this->Dir->ID;
-                $v->delete();
-                if($_REQUEST['del'] == $ID) redirect($pid);
-                Flash::create(__('The file/directory was deleted'));
-            } elseif($_REQUEST->nonempty('fname')
-                    && strposa($_REQUEST['fname'], array('..', '/', '\\')) === false
-                    && $this->may($USER, EDIT)) {
-                if(@mkdir($this->path.'/'.$_REQUEST['fname'], 0700)) {
-                    Flash::create('The folder was created successfully');
-                } else {
-                    Flash::create('There was a problem creating the directory. Check permissions and the name');
-                }
-            } elseif($_REQUEST['uploadToFolder'] && isset($_FILES['uFiles'])
-                    && $this->may($USER, EDIT)) {
-
-                $u=false;
-                $ue=false;
-                $extensions = $CONFIG->Files->filter;
-                foreach($_FILES['uFiles']['error'] as $i => $e) {
-                    $parts = explode('.', $_FILES['uFiles']['name'][$i]);
-                    $extension = array_pop($parts);
-                    if($e == UPLOAD_ERR_NO_FILE) continue;
-
-                    $newPath = $this->path.'/'.$_FILES['uFiles']['name'][$i];
-                    if($e == UPLOAD_ERR_OK) {
-                        if($_REQUEST['uncompress'] && in_array(strtolower(strrchr($_FILES['uFiles']['name'][$i], '.')), array('.tar', '.gz', '.tgz', '.bz2', '.tbz', '.zip', '.ar', '.deb')))
-                        {
-                            $tmpfile = $_FILES['uFiles']['tmp_name'][$i].$_FILES['uFiles']['name'][$i];
-                            rename($_FILES['uFiles']['tmp_name'][$i], $tmpfile);
-                            $u = true;
-                            require_once "File/Archive.php";
-                            error_reporting(E_ALL);
-                            $curdir = getcwd();
-                            chdir($this->path);
-                            //FIXME: FIXME!
-                            if(@File_Archive::extract(
-                                File_Archive::filter(
-                                    File_Archive::predExtension($extensions),
-                                    File_Archive::read($tmpfile.'/*')
-                                ),
-                                File_Archive::toFiles()
-                            ) == null) {
-                                $ue = true;
-                            }
-                            else {
-                                Flash::create(__('Extraction failed'));
-                            }
-                            chdir($curdir);
-                        }
-                        elseif(!in_array(strtolower($extension), $extensions))
-                        {
-                            Flash::create(__('Invalid format:').' '.$_FILES['uFiles']['name'][$i], 'warning');
-                            continue;
-                        }
-                        else {
-                            $u = (bool)@move_uploaded_file($_FILES['uFiles']['tmp_name'][$i], $newPath);
-                        }
-                    }
-                    if(!$u) {
-                        Flash::create(__('Upload of file').' "'.$_FILES['uFiles']['name'][$i].'" '.__('failed').' ('.($e?$e:__('Check permissions')).')', 'warning');
-                    }
-                }
-                if($u) {
-                    $this->loadStructure(true);
-                    Flash::create(__('Your file(s) were uploaded'));
-                }
-                if($ue) {
-                    $this->loadStructure(true);
-                    Flash::create(__('Your file(s) were uploaded and extracted'));
-                }
-                $_REQUEST->clear('uploadToFolder', 'action');
-            }
-            if(!in_array($CMPRExtension = $CONFIG->Files->compression_format, array('tar', 'gz', 'tgz', 'tbz', 'zip', 'ar', 'deb'))){
-                $CONFIG->Files->compression_format = $CMPRExtension = 'zip';
+            if(!in_array($CMPRExtension = $CONFIG->files->compression_format, array('tar', 'gz', 'tgz', 'tbz', 'zip', 'ar', 'deb'))){
+                $CONFIG->files->compression_format = $CMPRExtension = 'zip';
             }
             $render = true;
             switch($_REQUEST['action']) { // All users
@@ -202,25 +144,8 @@ class Folder extends File{
                     );
                     die();
                 default:
-                    $r = '<div class="nav"><a href="'.url(array('id' => 'files'), array('popup', 'filter')).'">'.icon('small/sitemap_color').__('Overview').'</a></div>';
-                    $this->content = array("main" => $r.$this->genHTML());
+                    $this->setContent("main", $this->genHTML());
                     break;
-            }
-            if($this->mayI(EDIT))
-            {
-                switch($_REQUEST['action']) { // Actions that require EDIT privileges
-                    case 'move':
-                        return parent::run();
-                    case 'upload':
-                        $this->content = array('header' => __('Upload files to').' '.$this->filename, 'main' => $this->uploadPage());
-                        break;
-                    case 'newFolder':
-                        $this->content = array('header' => __('Create new subfolder'), 'main' => $this->newFolder());
-                        break;
-                    case 'moveok':
-                        Flash::create(__('The file/folder was successfully moved'), 'confirmation');
-                        break;
-                }
             }
             if($render) {
                 $t = 'admin';
@@ -239,42 +164,12 @@ class Folder extends File{
      */
     function add($File){
         if(is_file($File->path)) {
-            $this->Files[$File->ID] = $File;
+            $this->files[$File->ID] = $File;
         }
         elseif(is_dir($File->path)) {
-            $this->Folders[$File->ID] = $File;
+            $this->folders[$File->ID] = $File;
         }
         $this->names[] = $File->basename;
-    }
-
-    /**
-     * Display the page for creation of a new subfolder
-     * @return void
-     */
-    function newFolder() {
-        $_REQUEST->clear('action');
-        $_GET->clear('action');
-        $form = new Form('newFolder', url(null, true), __('Create'));
-        return '<div class="nav"><a href="'.url(null, true).'">'.icon('small/arrow_left').__('Back to folder').'</a></div>'
-        .$form->collection(new Fieldset(__('New folder'),
-            new Input(__('Folder name'), 'fname')));
-    }
-
-    /**
-     * Display the page for file uploading
-     * @return void
-     */
-    function uploadPage() {
-        $form = new Form('uploadToFolder', url(null, true));
-        return $form->collection(
-            new Fieldset(__('Select files'),
-                new FileUpload(__('File to upload'), 'uFiles[]'),
-                new FileUpload(__('File to upload'), 'uFiles[]'),
-                new FileUpload(__('File to upload'), 'uFiles[]'),
-                new FileUpload(__('File to upload'), 'uFiles[]'),
-                new CheckBox(__('Uncompress compressed files'), 'uncompress', false)
-            )
-        );
     }
 
     /**
@@ -296,12 +191,12 @@ class Folder extends File{
             $fullpath = $this->path.'/'.$f;
             $type = (is_file($fullpath)?'File':(is_dir($fullpath)?'Folder':false));
             $info = pathinfo($fullpath);
-            if($type == 'File' && @!in_array(strtolower($info['extension']), $extensions)) {
+            if($type == 'File' && !in_array(strtolower($info['extension']), $extensions)) {
                 continue;
             }
             if($type != false) {
                 $File = new $type($fullpath, $this);
-                $this->{$type.'s'}[$File->basename] = $File;
+                $this->{strtolower($type).'s'}[$File->basename] = $File;
 
                 $realNames[] = $File->basename;
             }
@@ -315,8 +210,8 @@ class Folder extends File{
             $DB->files->delete(array('id' => $clean));
             $DB->spine->delete(array('id' => $clean));
         }
-        natcasesort($this->Files);
-        natcasesort($this->Folders);
+        natcasesort($this->files);
+        natcasesort($this->folders);
     }
     private $loaded=false;
 
@@ -331,6 +226,37 @@ Head::add('.directory {list-style-image: url(3rdParty/icons/small/folder.png);}
 .ext_tar, .ext_gz, .ext_tgz, .ext_bz2, .ext_tbz, .ext_zip, .ext_ar, .ext_deb {list-style-image: url(/3rdParty/icons/small/page_white_compressed.png);}', 'css-raw');
     }
 
+    function pcrumbs() {
+        global $Controller;
+        $r = '';
+        $d = $this->Dir;
+        $ancestors = array();
+        while($d) {
+            if(!$d->mayI(READ)) break;
+            $ancestors[] = array('id' => $d->ID, 'name' => $d->Name);
+            $d = $d->Dir;
+        }
+        $ancestors = array_reverse($ancestors);
+        $rootID = @$Controller->fileRoot->ID;
+        foreach($ancestors as $i => $a) {
+            $r.='<a href="'.url(array('id' => $a['id']), array('popup', 'filter')).'">';
+            if($a['id'] == $rootID) {
+                $r .= icon('small/house');
+            } else {
+                $r.= $a['name'];
+            }
+            $r .= '</a>';
+            if($a['id'] == $rootID) $r .=': / ';
+            else $r .= ' / ';
+        }
+        if($this->ID == $rootID) {
+            $r .= icon('small/house', __('Root directory')).__('Root directory');
+        } else {
+            $r.= $this->Name;
+        }
+        return $r;
+    }
+
     /**
      * Generate the XHTML/CSS to administrate the folder
      * @return void
@@ -341,60 +267,42 @@ Head::add('.directory {list-style-image: url(3rdParty/icons/small/folder.png);}
         global $CONFIG, $Controller;
 
         Head::add($CONFIG->UI->jQuery_theme.'/jquery-ui-*', 'css-lib');
-        $r = '';
-        $r .= '<div class="ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all"><span class="fixed-width">';
-        if($this->Dir !== 0) {
-            $d = $this->Dir;
-            $ancestors = array();
-            while($d) {
-                if(!$d->mayI(READ)) break;
-                $ancestors[] = array('id' => $d->ID, 'name' => $d->Name);
-                $d = $d->Dir;
-            }
-            $ancestors = array_reverse($ancestors);
-            $rootID = @$Controller->fileRoot->ID;
-            foreach($ancestors as $i => $a) {
-                $r.='<a href="'.url(array('id' => $a['id']), array('popup', 'filter')).'">';
-                if($a['id'] == $rootID) {
-                    $r .= icon('small/house');
-                } else {
-                    $r.= $a['name'];
-                }
-                $r .= '</a>';
-                if($a['id'] == $rootID) $r .=': / ';
-                else $r .= ' / ';
-            }
-            $r .= $this->Name;
-        } else {
-            $r .= __('Root folder');
-        }
-        $r	.=	'</span><div class="tools">'
-                    .($this->mayI(EDIT_PRIVILEGES)?icon('small/key', __('Edit permissions'), url(array('id' => 'PermissionEditor', 'edit' => $this->ID, 'referrer' => $this->ID), array('popup', 'filter'))):'')
-                    .($this->mayI(EDIT)?icon('small/folder_add', __('Create subfolder'), url(array('id' => $this->ID, 'action' => 'newFolder'), array('popup', 'filter'))):'')
-                    .(($this->mayI(DELETE) && $this->Dir !== 0)?icon('small/delete', __('Delete'), url(array('id' => $this->ID, 'del' => $this->ID), array('popup', 'filter'))):'')
-                    .($this->mayI(EDIT)?icon('large/3uparrow-16', __('Upload to folder'), url(array('id' => $this->ID, 'action' => 'upload'), array('popup', 'filter'))):'')
-                    .icon('large/down-16', __('Download'), url(array('id' => $this->ID, 'action' => 'download'), array('popup', 'filter')))
-                .'</div></div>';
+        $r = '<div class="ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all">'
+        .'<span class="fixed-width">'.$this->pcrumbs().'</span>'
+        .Box::tools($this)
+        .'</div>';
+
         $r .= '<ul class="filetree">';
         $i=0;
-        foreach($this->Folders as $cur) {
+        foreach($this->folders as $cur) {
             if(!$cur->mayI(READ)) continue;
-            $r .= '<li class="'.($i%2?'odd':'even').' directory"><span class="fixed-width"><a href="'.url(array('id' => $cur->ID), array('popup', 'filter')).'" title="'.__('Open folder').'">'.$cur.'</a></span><div class="tools">'
-                .($cur->mayI(EDIT_PRIVILEGES)?icon('small/key', __('Edit permissions'), url(array('id' => 'PermissionEditor', 'edit' => $cur->ID, 'referrer' => $this->ID), array('popup', 'filter'))):'')
-                .($cur->mayI(EDIT)?icon('small/door_in', __('Move'), url(array('id' => $cur->ID, 'action' => 'move'), array('popup', 'filter'))):'')
-                .($cur->mayI(DELETE)?icon('small/delete', __('Delete'), url(array('del' => $cur->ID), array('id', 'popup', 'filter'))):'')
-                .($cur->mayI(EDIT)?icon('small/folder_add', __('Create subfolder'), url(array('id' => $cur->ID, 'action' => 'newFolder'), array('popup', 'filter'))):'')
-                .($cur->mayI(EDIT)?icon('large/3uparrow-16', __('Upload to folder'), url(array('id' => $cur->ID, 'action' => 'upload'), array('popup', 'filter'))):'')
-                .icon('large/down-16', __('Download'), url(array('id' => $cur->ID, 'action' => 'download'), array('popup', 'filter')))
-            .'</div>';
-            $r .= '</li>';
+            $r .= '<li class="'.($i%2?'odd':'even').' directory">'
+            .'<span class="fixed-width"><a href="'.url(array('id' => $cur->ID), array('popup', 'filter')).'" title="'.__('Open folder').'">'.$cur.'</a></span>'
+            .Box::tools($cur)
+            .icon('large/down-16', __('Download'), url(array('id' => $cur->ID, 'action' => 'download')))
+            .'</li>';
             $i++;
         }
+        $r .= '</ul>';
         global $SITE;
-        if($_REQUEST['popup']) {
+    	if($_REQUEST['popup']== "ckeditor") {
+		//http://docs.cksource.com/CKEditor_3.x/Developers_Guide/File_Browser_(Uploader)/Custom_File_Browser
+
+		Head::add("function getUrlParam(paramName)
+		{
+		  var reParam = new RegExp('(?:[\?&]|&amp;)' + paramName + '=([^&]+)', 'i') ;
+		  var match = window.location.search.match(reParam) ;
+
+		  return (match && match.length > 1) ? match[1] : '' ;
+		}
+		var funcNum = getUrlParam('CKEditorFuncNum');
+		var fileUrl = 'https://www.ysektionen.se/';
+		", 'js-raw');
+		Head::add("function select(id) {try{window.opener.CKEDITOR.tools.callFunction(funcNum, 'https://www.ysektionen.se/'+id);} catch(err) {}window.close();}", 'js-raw');
+	}else if($_REQUEST['popup']) {
             Head::add("function select(id) {try{window.opener.fileCallback(id,'{$_REQUEST['popup']}');} catch(err) {}window.close();}", 'js-raw');
         }
-        foreach($this->Files as $cur) {
+        foreach($this->files as $cur) {
             if(!$cur->mayI(READ)) continue;
             if($_REQUEST['filter']) {
                 switch($_REQUEST['filter']) {
@@ -412,24 +320,20 @@ Head::add('.directory {list-style-image: url(3rdParty/icons/small/folder.png);}
             {
                 if(!$_REQUEST['popup']) $r .= '><span';
                 JS::lib('jquery/imgPreview');
-                Head::add('#imgpreview{
-    position:absolute;
-    border:1px solid #ccc;
-    background:#333;
-    padding:5px;
-    display:none;
-    color:#fff;}', 'css-raw');
+                Head::add('#imgpreview{'
+    .'position:absolute;'
+    .'border:1px solid #ccc;'
+    .'background:#333;'
+    .'padding:5px;'
+    .'display:none;'
+    .'color:#fff;}', 'css-raw');
                 $r .= ' class="imagepreview" rel="/'.$cur->ID.'?mw=100">'.$cur->basename;
                 if(!$_REQUEST['popup']) $r .= '</span>';
             }
             else $r .= '>'.$cur->basename;
             if($_REQUEST['popup']) $r .= '</a>';
             $r .='</span><div class="tools">'
-                .(($cur->mayI(EDIT))?icon('small/pencil', __('Edit file'), url(array('id' => $cur->ID, 'action' => 'edit'), array('popup', 'filter'))):'')
-                .($cur->mayI(EDIT_PRIVILEGES)?icon('small/key', __('Edit permissions'), url(array('id' => 'PermissionEditor', 'edit' => $cur->ID, 'referrer' => $this->ID), array('popup', 'filter'))):'')
-                .($cur->mayI(EDIT)?icon('small/door_in', __('Move'), url(array('id' => $cur->ID, 'action' => 'move'), array('popup', 'filter'))):'')
-                .($cur->mayI(DELETE)?icon('small/delete', __('Delete'), url(array('del' => $cur->ID), array('id', 'popup', 'filter'))):'')
-                .icon('large/down-16', __('Download'), url(array('id' => $cur->ID, 'action' => 'download'), array('popup', 'filter')))
+                .Box::tools($cur)
             .'</div></li>';
             $i++;
         }
@@ -442,12 +346,12 @@ Head::add('.directory {list-style-image: url(3rdParty/icons/small/folder.png);}
      */
     function delete() {
     global $USER;
-        if($this->Dir !== 0 && $this->may($USER, DELETE)) {
+        if($this->Dir !== 0 && $this->mayI(DELETE)) {
             $this->loadStructure();
-            foreach($this->Files as $file) {
+            foreach($this->files as $file) {
                 $file->delete();
             }
-            foreach($this->Folders as $folder) {
+            foreach($this->folders as $folder) {
                 $folder->delete();
             }
             rmdir($this->path);

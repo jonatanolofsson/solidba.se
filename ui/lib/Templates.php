@@ -59,12 +59,14 @@ class Templates{
             $template = 'default';
         }
 
+        $default = ($template == 'default');
         switch($template){
             case 'admin':
-                $template = $CONFIG->Template->admin;
+                $template = $CONFIG->Template->default .":admin";//$CONFIG->Template->admin
                 if($template) break;
             case 'default':
-                $template = @$CONFIG->Template->default;
+                $template = $CONFIG->Template->default;
+                $default = true;
                 break;
             case 'page':
                 $template = $this->pageTemplate($page);
@@ -74,7 +76,7 @@ class Templates{
         if(!isset($this->templates[$template])) $this->__load($template);
         if(isset($this->templates[$template]))
             return $this->templates[$template];
-        elseif($template == 'default') return false;
+        elseif($default) return false;
         else return $this->__get('default');
     }
 
@@ -111,7 +113,7 @@ class Templates{
 
         switch($template){
             case 'admin':
-                $template = @$CONFIG->Template->admin;
+                $template = @$CONFIG->Template->default .":admin";//$CONFIG->Template->admin
                 if($template) break;
             case 'default':
                 $template = @$CONFIG->Template->default;

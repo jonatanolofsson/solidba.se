@@ -86,7 +86,7 @@ class Tabber{
         $r .= '</ul>';
         foreach($this->tabs as $id => $tab) {
             $id =  $this->uniqid.(!is_numeric($id)?$id:($tab->id?$tab->id:$id));
-            $r .= '<div id="tab'.$id.'" title="tab'.$id.'" class="ui-tabs-panel'.(!$tab->selected?' ui-tabs-dohide':'').'">'.str_replace('#::tab-id::#', 'tab'.$id, $tab->render()).'</div>';
+            $r .= '<div id="tab'.$id.'" class="ui-tabs-panel'.(!$tab->selected?' ui-tabs-dohide':'').'">'.str_replace('#::tab-id::#', 'tab'.$id, $tab->render()).'</div>';
         }
         return $r.'</div>';
     }

@@ -89,6 +89,7 @@ class Flow {
      * @return array Array of objects from the specified queues
      */
     function retrieve($queues, $amount, $before=false, $after=false, $last_edited=false, $offset=0, $pinned = 'any', $aLEVEL=ANYTHING, $u=false) {
+        if(!$queues) return array();
         global $DB, $Controller;
         if(!$before) $before=time();
         if(!$after) $after = 0;
@@ -103,19 +104,21 @@ class Flow {
         $items = array();
         $itemsIDS = array();
         do{
-            $cond = array(	'flow.queue' => $queues,
+            $cond = array(  'flow.queue~' => $queues,
                             'flow.'.($last_edited?'modified':'created').'>=' => $after,
-                            'flow.'.($last_edited?'modified':'created').'<=' => $before);
+                            'flow.'.($last_edited?'modified':'created').'<=' => $before,
+                            'metadata.field' => 'Activated',
+                            'metadata.value' => '1');
             if($pinned != 'any') {
                 $cond['metadata.field'] = 'LockedPos';
                 $cond['metadata.value'] = (bool)$pinned;
             }
             if($itemsIDS) $cond['flow.id!'] = $itemsIDS;
 
+            //FIXME: Fix database and remove GROUP BY
             $newIDS = $DB->{'flow,metadata'}->asList($cond, 'flow.id',
-                            $dboffset.','.ceil(($amount + $offset) * 1.5),
-                            true, ($last_edited?'modified':'created').' DESC');
-
+                            $dboffset.','.ceil(($amount * 1.5 + $offset)),
+                            true, ($last_edited?'modified':'created').' DESC', 'flow.id,flow.queue');
             if(!$newIDS) break;
             $newItems = $Controller->get($newIDS, $aLEVEL, $u);
             $newItems = arrayKeySort($newItems, $newIDS);

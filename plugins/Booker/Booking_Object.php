@@ -4,20 +4,26 @@ class Booking_Object extends Page {
     private $loadedTimes = array();
     private $ParentBookObject = false;
     private $subBookables = array();
-    public $privilegeGroup = 'Booking objects';
-    
 
-    
+
+    public $editable = array(
+        'PageSettings' => EDIT,
+        'PermissionEditor' => EDIT_PRIVILEGES,
+        'MenuEditor' => EDIT,
+        'Delete' => DELETE
+    );
+
     /**
      * (non-PHPdoc)
      * @see lib/Page#run()
      */
     function run() {
+        Head::add('booking', 'css-lib');
         Settings::registerSetting('booking_timelimit', 'text', false, 3);
         Settings::registerSetting('booking_advance_limit', 'text', false, 3);
-        Settings::registerSetting('booking_confirmation', 'select', array('Must be confirmed', 'Self-confirmed'), 3);
+        Settings::registerSetting('booking_confirmation', 'Select', array('Must be confirmed', 'Self-confirmed'), 3);
         global $Templates, $Controller, $DB, $USER;
-        
+
         $_REQUEST->setType('viewPeriod', '#[0-9]{4}-[0-9]{2}-[0-9]{2}\|[0-9]{4}-[0-9]{2}-[0-9]{2}#');
         $_REQUEST->setType('viewDate', '#[0-9]{4}-[0-9]{2}-[0-9]{2}#');
         $_REQUEST->setType('when', '#[0-9]{4}-[0-9]{2}#');
@@ -29,17 +35,17 @@ class Booking_Object extends Page {
         $_REQUEST->setType('startTime', 'numeric');
         $_REQUEST->setType('confirm', 'string');
         $_REQUEST->setType('js', 'any');
-        
+
         $this->link(false, array('viewBooking' => 'adsfafasg'));
         $this->setContent('header', $this->Name);
         $popup = false;
         $c = '';
-        
+
         if($_REQUEST['delbooking'] || $_REQUEST['rembooking']) {
             $booking = $DB->booking_bookings->getRow(array('b_id' => ($_REQUEST['delbooking']?$_REQUEST['delbooking']:$_REQUEST['rembooking'])));
             if($this->mayI(EDIT) || $booking['booked_by'] == $USER->ID || ($booking['booked_for'] && $Controller->{$booking['booked_for']}('Group') && $Controller->{$booking['booked_for']}->isMember($USER))) {
                 $bstart = $booking['starttime'];
-    
+
                 $popup = true;
                 if($_REQUEST['js']) {
                     $nav = '<div class="nav"><a href="javascript:window.close()">'.icon('small/cancel').__('Close').'</a></div>';
@@ -48,7 +54,7 @@ class Booking_Object extends Page {
                 } else {
                     $nav = '<div class="nav"><a href="'.url(array('viewDate' => date('Y-m-d', $booking['starttime'])), array('id')).'">'.icon('small/arrow_up').__('Back').'</a></div>';
                 }
-                
+
                 if($bstart<time()) {
                     $c = $nav.'<h3>'.__("Startingtime has passed. Unable to proceed.").'</h3>';
                 } else {
@@ -91,7 +97,7 @@ class Booking_Object extends Page {
                 $c = $this->calendarView().'<div class="bcontent">'.@$this->content['main'].'</div>';
             }
         }
-    
+
         $this->setContent('main', $c);
         if($_REQUEST['js'] && $popup) {
             $Templates->popup->render();
@@ -99,7 +105,7 @@ class Booking_Object extends Page {
             $Templates->render();
         }
     }
-    
+
     /**
      * The calendar view
      * @return string Page Content
@@ -111,14 +117,14 @@ class Booking_Object extends Page {
         .'<h2>'.__('Book').'</h2>'
         .$this->displayCalendar($_REQUEST['when']);
     }
-    
+
     /**
-     * View the interface for booking the selected items
+     * View the interface for booking the Selected items
      * @return string Page content
      */
     function bookingPage() {
         global $DB, $USER, $CONFIG, $Controller;
-        
+
         $_REQUEST->setType('startTime', 'numeric');
         $_REQUEST->setType('duration', 'numeric');
         $_REQUEST->setType('d', 'string');
@@ -126,9 +132,9 @@ class Booking_Object extends Page {
         $_POST->setType('bookObjs', 'numeric', true);
         $_POST->setType('who', array('numeric', '#^$#'));
         $_POST->setType('comment', 'string');
-        
+
         $TimeStep			= 30;
-                
+
         if($_REQUEST['startTime'] && $_REQUEST['startTime'] >= time()) $startTime = $_REQUEST['startTime'];
         else $startTime = mktime(date('H'),(date('i') + ($TimeStep - (date('i') % $TimeStep))),0);
         if($_REQUEST['duration'] && $_REQUEST['duration']>0) $duration = $_REQUEST['duration'];
@@ -147,22 +153,22 @@ class Booking_Object extends Page {
                 $_REQUEST['refresh'] = 'true';
             }
         }
-        
+
         $endTime = $startTime + $duration;
-    
+
         if($_REQUEST['js']) {
             $nav = '<div class="nav"><a href="javascript:window.close();">'.icon('small/cancel').__('Close').'</a></div>';
         } else {
             $nav = '<div class="nav"><a href="'.url(null, array('id', 'viewDate')).'">'.icon('small/arrow_up').__('Back').'</a></div>';
         }
-        
+
         $this->loadBookingObject();
         $result = '';
         $result .= $nav;
         $form = new Form('booking', url(null, 'viewDate'), __('Book'));
         $result .= $form->open();
         $result .= '<div class="cal_bookable"><ul>';
-    
+
         $Objects = (array)$this->subBookables;
         array_unshift($Objects, $this);
         $no_free = true;
@@ -175,8 +181,8 @@ class Booking_Object extends Page {
             }
         }
         $result .= '</ul></div>';
-        
-        $time_selectValues = array();
+
+        $time_SelectValues = array();
         $limit = false;
         $this->loadDay($endTime);
         foreach($this->bookings as $booking) {
@@ -187,27 +193,27 @@ class Booking_Object extends Page {
             }
         }
         if(!$limit) $limit = mktime(0,0,0,date('m', $endTime),date('d', $endTime)+1,date('Y', $endTime));
-        
-        $time_selectValues = array();
+
+        $time_SelectValues = array();
         if(date('Ymd', $startTime)!=date('Ymd', $endTime)) {
             $t = mktime(0,0,0,date('m', $endTime),date('d', $endTime),date('Y', $endTime));
         } else {
             $t = $startTime+60*$TimeStep;
         }
         while($t<=$limit) {
-            $time_selectValues[($t-$startTime)] = date('H:i', $t);
+            $time_SelectValues[($t-$startTime)] = date('H:i', $t);
             $t += 60*$TimeStep;
         }
-        
-        if(empty($time_selectValues) || $no_free) {
+
+        if(empty($time_SelectValues) || $no_free) {
             $current = $this->getOnGoingBooking(($no_free?$startTime:$t));
             if($_REQUEST['d']=='l') $_REQUEST['startTime'] = $current['starttime'] - $duration;
             else $_REQUEST['startTime'] = $current['starttime'] + $current['duration'];
             return $this->bookingPage();
         }
-    
+
         $personal_timelimit = $USER->settings['booking_timelimit'];
-        if($personal_timelimit == '') 
+        if($personal_timelimit == '')
             $personal_timelimit = $Controller->{(string)MEMBER_GROUP}(OVERRIDE)->settings['booking_timelimit'];
         $canBookSelf = (bool)$personal_timelimit;
         $bookingGroups = array();
@@ -219,11 +225,13 @@ class Booking_Object extends Page {
                 if(!$canBookSelf) $canBookSelf = (bool) $g->settings['booking_timelimit'];
             }
         }
-        
+
         $result .= new Set(
             new Hidden('startTime', $startTime),
             new Hidden('endTime', $endTime),
-            new Select(__('Who'), 'who', $bookingGroups, @$_POST['who'], false, ($canBookSelf?__('Yourself'):false)),
+            ((empty($bookingGroups) && $canBookSelf)
+                ? new Hidden('who')
+                : new Select(__('Who'), 'who', $bookingGroups, @$_POST['who'], false, ($canBookSelf?__('Yourself'):false))),
             strftime('%a, %e %b -%y', $startTime)
                 .', <a href="'.url(array('startTime' => mktime(date('H', $startTime), date('i', $startTime) - $TimeStep, 0, date('m', $startTime), date('d', $startTime), date('Y', $startTime)), 'duration' => $duration, 'd' => 'l'), array('id', 'view', 'js')).'">&laquo;</a> '
                 .date('H:i', $startTime)
@@ -231,18 +239,18 @@ class Booking_Object extends Page {
             (date('Ymd',$endTime)>date('Ymd', $startTime)?'<a href="'.url(array('startTime' => $startTime, 'duration' => $duration - 86400), array('id', 'view', 'js')).'">':'').'&laquo;'.(date('Ymd',$endTime)>date('Ymd', $startTime)?'</a> ':' ')
                 .strftime('%a, %e %b -%y', $endTime)
                 .' <a href="'.url(array('startTime' => $startTime, 'duration' => $duration + 86400), array('id', 'view', 'js')).'">&raquo;</a>'
-                .(new select(false, 'duration', $time_selectValues, $duration)).' '
-                .(new submit(__('Check availability'), 'refresh')),
-            new textarea(__('Comment'), 'comment', '', 'mandatory')
+                .(new Select(false, 'duration', $time_SelectValues, $duration)).' '
+                .(new Submit(__('Check availability'), 'refresh')),
+            new Textarea(__('Comment'), 'comment', '', 'mandatory')
         );
-        
+
         $result .= $form->close();
         return $result;
     }
-    
+
     /**
      * Confirm a booking
-     * @param $booking_id Which booking to confirm 
+     * @param $booking_id Which booking to confirm
      * @return bool Success
      */
     function confirm($booking_id) {
@@ -250,7 +258,7 @@ class Booking_Object extends Page {
         if(!$this->mayI(EDIT) || !$booking_id) return false;
         $DB->booking_bookings->update(array('cleared_by' => $USER->ID), array('b_id' => $booking_id), false, false);
         $owner = $DB->booking_bookings->getCell(array('b_id' => $booking_id), 'booked_by');
-        
+
         $_REQUEST->setType('viewBooking', 'string');
         new Notification(
             __('Booking confirmed'),
@@ -259,7 +267,7 @@ class Booking_Object extends Page {
         );
         return true;
     }
-    
+
     /**
      * Book the item and/or it's subobjects
      * @param $what Which objects to book
@@ -273,7 +281,7 @@ class Booking_Object extends Page {
         global $Controller, $DB, $USER;
         $booking_id 	= uniqid();
         $book			= array();
-        
+
         $clearance = $this->getClearance($from, $duration, $who);
         if($clearance === false) {
             return false;
@@ -305,9 +313,9 @@ class Booking_Object extends Page {
         }
         return true;
     }
-    
+
     /**
-     * Returns the ID which grants clearance to perform a booking
+     * Returns the ID which granted clearance to perform a booking
      * @param $from Starting time of booking
      * @param $duration How long the booking lasts
      * @param $who Who should be debited
@@ -320,18 +328,18 @@ class Booking_Object extends Page {
         if(!is_a($who, 'User') && !is_a($who, 'Group')) {
             return false;
         }
-        
+
         if(is_a($who, 'User')) {
             $booking_timelimit = $who->settings['booking_timelimit'];
-            if($booking_timelimit == '') 
-                $booking_timelimit = $Controller->{(string)MEMBER_GROUP}(OVERRIDE)->settings['booking_timelimit']; 
+            if($booking_timelimit == '')
+                $booking_timelimit = $Controller->{(string)MEMBER_GROUP}(OVERRIDE)->settings['booking_timelimit'];
         }
-        
+
         if($booking_timelimit == 0) {
             Flash::create(__('Booking not allowed'), 'warning');
             return false;
         }
-        
+
         /* Is the user allowed to book this far in the future? */
         if($who->settings['booking_advance_limit']) {
             if($from + $duration > time() + $who->settings['booking_advance_limit']*86400) {
@@ -339,7 +347,7 @@ class Booking_Object extends Page {
                 return false;
             }
         }
-        
+
         /* Has the user got any time left to use? */
         if($booking_timelimit > 0) {
             $total_booked_time = $DB->getCell("SELECT SUM( `duration` ) as `total_time` FROM `booking_bookings` WHERE (`booked_by` = '".Database::escape($who->ID)."' OR `booked_for` == '".Database::escape($who->ID)."') AND `starttime`+`duration` > UNIX_TIMESTAMP() GROUP BY `b_id`", 'total_time');
@@ -348,12 +356,12 @@ class Booking_Object extends Page {
                 return false;
             }
         }
-        
+
         if($this->mayI(EDIT) || $who->settings['booking_confirmation']) {
             return $USER->ID;
         } else return 0;
     }
-    
+
     /**
      * Continue the booking process for all children
      * @param $booking_id Original ID of the booking
@@ -369,7 +377,7 @@ class Booking_Object extends Page {
         $what = $this->subBookables;
         if(!$what) return true;
         $book			= array();
-        
+
         foreach($what as $obj_id) {
             if(!is_numeric($obj_id)) continue;
             if($obj = $Controller->$obj_id('Booking_Object')) {
@@ -387,8 +395,8 @@ class Booking_Object extends Page {
         }
         return true;
     }
-    
-    
+
+
     /**
      * Loads the parent object and all subobjects
      * @param $force Force reload
@@ -402,11 +410,11 @@ class Booking_Object extends Page {
         $this->subBookables 	= $Controller->get($DB->booking_items->asList(array('parent' => $this->ID), 'id'));
     }
     private $bLoaded = false;
-    
-    
-    
+
+
+
     /**
-     * Load all bookings relevant to the object and it's children 
+     * Load all bookings relevant to the object and it's children
      * @param $StartingTime Starting time
      * @param $StopTime Stop time
      * @param $force Bypass cache
@@ -417,7 +425,7 @@ class Booking_Object extends Page {
         global $DB;
         if(in_array($StartingTime.'|'.$StopTime, $this->loadedTimes) && !$force) return;
         $this->loadedTimes[] = $StartingTime.'|'.$StopTime;
-        $this->bookings = array_merge($this->bookings, 
+        $this->bookings = array_merge($this->bookings,
 $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
  (
    (`starttime` BETWEEN ".$StartingTime." AND ".($StopTime-1).")
@@ -433,7 +441,7 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
             else $booking_ids[] = $booking['b_id'];
         }
     }
-    
+
     /**
      * Load all events a given day
      * @param $from Timestamp from the day to load
@@ -444,7 +452,7 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
         $to = max($to, $from);
         $this->loadBookings(mktime(0,0,0, date('m', $from), date('d', $from), date('Y', $from)), mktime(0,0,0, date('m', $to), date('d', $to)+1, date('Y', $to)));
     }
-    
+
     /**
      * Returns wether the object is free the given time or not
      * @param $from Starttime
@@ -472,8 +480,8 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
         }
         return true;
     }
-    
-    
+
+
     /**
      * Returns true if the given booking is one of the object's
      * @param $booking Booking
@@ -485,7 +493,7 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
         if(in_array($booking['b_id'], arrayExtract($this->bookings, 'b_id'))) return true;
         else return false;
     }
-    
+
     /**
      * Get the booking going on at a given time
      * @param $time Timestamp
@@ -501,14 +509,14 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
         }
         return false;
     }
-    
+
     function parentBookID() {
         $this->loadBookingObject();
         if($this->ParentBookObject) {
             return $this->ParentBookObject->ID;
         } else return 0;
     }
-    
+
      /**
       * Display a given booking
       * @param $booking Booking id
@@ -527,7 +535,7 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
         }
         if(!$booking) return __('An error occured. Cannot find booking');
         $nav = '<div class="nav">';
-        
+
         $nav .= ($_REQUEST['js']
                     ?'<a href="javascript:window.close();">'.icon('small/cancel').__('Close').'</a>'
                     :'<a href="'.url(null, array('viewDate', 'id')).'">'.icon('small/arrow_left').__('Back').'</a>'
@@ -543,7 +551,7 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
                 :'');
         $nav .= '</div>';
         return $nav.new Set(
-            ($booked_items 
+            ($booked_items
                 ? new FormText(__('What'), listify(inflate($booked_items), false, true, 'obj', 'children'))
                 : null
             ),
@@ -563,8 +571,8 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
             )
         );
     }
-    
-    
+
+
     /**
      * View the object's availability for a given date
      * @param $Date
@@ -574,36 +582,36 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
         JS::loadjQuery();
         Head::add('SB_Calendar', 'js-lib');
         Head::add('$(".cal_viewdate a").not(".cal_obj_links a").click(SB_Calendar.popup);', 'js-raw');
-        
+
         global $DB, $Controller;
         $this->loadBookingObject();
-        
+
         if(!is_numeric($Date)) $Date = strtotime($Date);
-        
+
         $result = '';
         $result .= '<div class="nav"><a href="'.url(array('when' => date('Y-m', $Date)), array('id')).'">'.icon('small/arrow_left').__('Back').'</a></div>';
-        
+
         $result .= $this->viewDatEmptyTable($Date);
         return $result;
     }
-    
+
     function viewDatEmptyTable($Date, $allownew = true, $tableheader=true)
     {
         global $Controller;
         $StartingTime 		= mktime(0,0,0,date('m', $Date), date('d', $Date), date('Y', $Date));
         $StopTime			= mktime(0,0,0,date('m', $Date), date('d', $Date)+1, date('Y', $Date));
         $Now				= time();
-        
+
         $TimeStep 			= 30; //minutes
-        
-    
+
+
         if($StopTime>=$Now) {
             Head::add("setTimeout('window.location=window.location;',60000)", 'js-raw');
         }
-        
+
         $result = '';
         $result .= '<table class="cal_viewdate">';
-        if($tableheader) 
+        if($tableheader)
         {
             $result .= '<tr class="cal_timeline"><td></td>';
             for($t=0;$t<24;$t+=($TimeStep / 60)) {
@@ -628,9 +636,9 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
             $onGoingBooking = false;
             $oldOnGoingBooking = false;
             for($t=0;$t<60*24;$t+=$TimeStep) {
-                
+
                 $CurrentTime = $StartingTime + $t*60;
-                
+
                 if($onGoingBooking = $Obj->getOnGoingBooking($CurrentTime)) {
                     if($oldOnGoingBooking != $onGoingBooking && $onGoing) {
                         if($row == 0 || !$Objects[$row-1]->bookingExists($oldOnGoingBooking)) {
@@ -678,7 +686,7 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
         $result .= '</table>';
         return $result;
     }
-    
+
     function viewPeriod($start, $stop)
     {
         JS::loadjQuery();
@@ -696,9 +704,9 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
         {
             $dayStarts = mktime(0,0,0,date('m', $start),date('d', $start)+$i,date('Y', $start));
             $dayEnds = mktime(0,0,0,date('m', $start),date('d', $start)+(++$i),date('Y', $start));
-            
+
             if($dayEnds >= $stop) break;
-            
+
             if(!$this->isFree($dayStarts, 86400))
             {
                 $result .= '<tr><th>'.date('Y-m-d', $dayStarts).'</th><td>';
@@ -706,11 +714,11 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
                 $result .= '</td></tr>';
             }
         }
-        
+
         $result .= '</table>';
         return $result;
     }
-    
+
     /**
      * Display the object's availability for a given month
      * @param $when Which month to display
@@ -718,13 +726,13 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
      */
     function displayCalendar($when = false) {
         global $DB;
-        
+
         if($when) {
             if(!is_numeric($when)) {
                 $when = mktime(0,0,0,substr($when,5,2),1,substr($when,0,4));
             }
         } else $when = time();
-        
+
         $DaysInMonth 		= date('t', $when);
         $StartingTime 		= mktime(0, 0, 0, date('m', $when), 1, date('Y', $when));
         $StopTime			= mktime(0, 0, 0, date('m', $when)+1, 0, date('Y', $when));
@@ -733,11 +741,11 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
         $StartingWeekday	= date('N', $StartingTime);
         $StartingWeek		= date('W', $StartingTime);
         $Today 				= date('Ymd');
-        
+
         $WeekStartsAt		= 1;
         $HalfDayLimit		= 0.3;
-        
-        
+
+
         $result = '<table class="calendar">';
         $result .= '<thead><tr><td></td>'
             .'<td>'.icon('small/resultset_first', __('Previous Year'), url(array('when' => ($Year-1).'-'.$Month), array('id'))).'</td>'
@@ -753,9 +761,9 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
             $result .= '<th><a href="'.url(array('viewPeriod' => $Year.'-'.$Month.'-01|'.date('Y-m-d', mktime(0,0,0,$Month+1,0,$Year)), 'viewDay' => $i+1), array('id')).'">'.strftime('%a', 1251064800 + (86410 * $i)).'</a></th>';
         }
         $result .= '</tr></thead>';
-        
+
         $result .= '<tbody>';
-        
+
         $Cell 				= 0;
         $Week 				= $StartingWeek;
         $InitialEmptyCells 	= (($StartingWeekday - $WeekStartsAt + 7) % 7);
@@ -773,7 +781,7 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
                 if($Year.$Month.$Day < $Today) 			$result .= 'cal_past';
                 elseif($Year.$Month.$Day == $Today) 	$result .= 'cal_today';
                 else 									$result .= 'cal_future';
-                
+
                 $duration = $this->percentageOfDayBooked($YearMonth.$Day);
                 if($duration) {
                     if($duration <= $HalfDayLimit) {
@@ -792,10 +800,10 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
             }
         }
         $result .= '</tbody></table>';
-        
+
         return $result;
     }
-    
+
     /**
      * View a list of the object and it's subobjects
      * @return string List
@@ -819,7 +827,6 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
      */
     function sortBooking($newPlace, $parent=false) {
         global $DB, $Controller, $USER;
-        $this->getSelf();
         if($this->ID===false || $newPlace < 0) return false;
         if($Controller->bookings(EDIT)) {
             if($parent === false) $parent = $this->_parent;
@@ -848,7 +855,7 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
             return true;
         }
     }
-    
+
     /**
      * Returns how many percent a given day is booked
      * @param $when Timestamp from the given day
@@ -860,7 +867,7 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
         $StopTime = mktime(0,0,0,date('m', $when), date('d', $when)+1, date('Y', $when));
         return $this->percentageBooked($StartingTime, $StopTime);
     }
-    
+
     /**
      * Returns the percentage of the timespan the the object is considered booked
      * @param $StartingTime
@@ -871,7 +878,7 @@ $DB->asArray("SELECT * FROM `booking_bookings` WHERE `id`='".$this->ID."' AND
     function percentageBooked($StartingTime, $StopTime) {
         global $DB;
         if($StartingTime >= $StopTime || !is_numeric($StartingTime) || !is_numeric($StopTime)) return false;
-        
+
         $Booked_Time = array_sum($DB->asList("SELECT SUM(`duration` - GREATEST( `starttime` + `duration` - ".$StopTime." , 0) - GREATEST( ".$StartingTime." - `starttime` , 0 )) FROM `booking_bookings` WHERE `id`".($this->subBookables?" IN ('".$this->ID."','".implode("','", $this->subBookables)."')":"='".$this->ID."'")." AND
  (
    (`starttime` BETWEEN ".$StartingTime." AND ".($StopTime-1).")

@@ -33,10 +33,11 @@ class User extends Beneficiary {
     protected $translateName = false;
     public $privilegeGroup = 'Users';
     private $DBTable = 'users';
-    private $_AcceptedTerms;
 
     static public function installable() {return __CLASS__;}
     static public function uninstallable() {return __CLASS__;}
+
+    public $editable = array('UserEditor' => EDIT);
 
     /**
      * Initialization of the user class
@@ -53,11 +54,11 @@ class User extends Beneficiary {
             $DB->users->{(string)$id} = array('#!last_active' => 'NOW()');
         }
         parent::__construct($id);
+        Base::registerMetadata('AcceptedTerms');
         $this->loadUser($id);
 
         if($cur && $id != NOBODY && $_REQUEST['id'] != 'Terms') {
-            $redir = !$this->isActiveUser();
-            if($redir) {
+            if(!$this->isActive()) {
                 $_REQUEST->setType('return', 'numeric');
                 redirect(url(array('id' => 'Terms', 'return' => $ID)));
             }
@@ -76,7 +77,6 @@ class User extends Beneficiary {
         $r = array();
         $uifields = @$CONFIG->userinfo->Fields;
         foreach($uifields as $name => $uf) {
-/* 			dump($name); */
             switch($uf['type']) {
                 case 'image':
                     if(@$this->userinfo[$name]) {
@@ -106,7 +106,7 @@ class User extends Beneficiary {
         $_REQUEST->setType('mh','numeric');
         $uifields = @$CONFIG->userinfo->Fields;
         foreach($uifields as $name => $uf) {
-            if($uf['type'] == 'image' && @$this->userinfo[$name]) return '<image src="'.url(array('id' => $this->userinfo[$name], 'mw' => $maxWidth, 'mh' => $maxHeight)).'" class="userimg" />';
+            if($uf['type'] == 'image' && @$this->userinfo[$name]) return '<img src="'.url(array('id' => $this->userinfo[$name], 'mw' => $maxWidth, 'mh' => $maxHeight)).'" class="userimg" alt="'.$this->Name.'"/>';
             else return false;
         }
     }
@@ -210,7 +210,8 @@ class User extends Beneficiary {
     * @return mixed
     */
     function __get($property){
-        if(in_array($property, array('username', 'userinfo', 'AcceptedTerms', 'password'))) return $this->{'_'.$property};
+        if(in_array($property, array('username', 'userinfo', 'password')))
+            return $this->{'_'.$property};
         return parent::__get($property);
     }
 
@@ -221,44 +222,36 @@ class User extends Beneficiary {
     * @param mixed $value The value to set the property with
     */
     function __set($property, $value){
-    global $DB, $USER;
+        global $DB, $USER;
         $ipn = '_'.$property;
-        if(in_array($property, array('username', 'password', 'userinfo', 'passwordhash', 'Name')))
-        {
-            switch($property) {
-                case 'password':
-                    if($this->password == 'LDAP') break;
-                    if(empty($value)) return false;
-                    $value = pwdEncode($value);
-                    //NOTE: No break here
-                case 'username':
-                    if(empty($value)) return false;
-                    Base::__set('Name', $value);
-                case 'passwordhash': // passwordhash bypasses pwdEncode and sets the raw password hash.
-                    if(empty($value)) return false;
-                    if ($property == 'passwordhash') {
-                        $ipn = '_password';
-                        $property = 'password';
-                    }
-                    if($this->$ipn === $value) break;
-                    $this->$ipn = $value;
-                    $DB->users->{$this->ID} = array($property => $value);
-                    break;
-                case 'userinfo':
-                    if(!is_array($value)) return false;
-                    foreach($value as $prop => $val) {
-                        $DB->userinfo->update(array('val' => $val), array('prop' => $prop, 'id' => $this->ID), true);
-                    }
-                    $this->_userinfo = array_merge($this->_userinfo, $value);
-                    break;
-                case 'Name':
-                    Base::__set($property, $value);
-                    break;
-            }
-        } elseif(in_array($property, array('AcceptedTerms'))) {
+        switch($property) {
+            case 'password':
+                if($this->password == 'LDAP') break;
+                if(empty($value)) return false;
+                $value = pwdEncode($value);
+                //NOTE: No break here
+            case 'username':
+                if(empty($value)) return false;
+                Base::__set('Name', $value);
+            case 'passwordhash': // passwordhash bypasses pwdEncode and sets the raw password hash.
+                if(empty($value)) return false;
+                if ($property == 'passwordhash') {
+                    $ipn = '_password';
+                    $property = 'password';
+                }
+                if($this->$ipn === $value) break;
                 $this->$ipn = $value;
-        } else {
-            parent::__set($property, $value);
+                $DB->users->{$this->ID} = array($property => $value);
+                break;
+            case 'userinfo':
+                if(!is_array($value)) return false;
+                foreach($value as $prop => $val) {
+                    $DB->userinfo->update(array('val' => $val), array('prop' => $prop, 'id' => $this->ID), true);
+                }
+                $this->_userinfo = array_merge($this->_userinfo, $value);
+                break;
+            default:
+                parent::__set($property, $value);
         }
     }
 
@@ -267,13 +260,7 @@ class User extends Beneficiary {
         elseif(is_numeric($what)) $what = 'g'.$what;
         elseif(is_object($what)) $what = 'g'.$what->ID;
 
-        if (isset($this->content) && is_array($this->content)
-            && array_key_exists($what, $this->content))
-        {
-            return $this->content[$what];
-        }
-        else
-            return '';
+        return $this->getContent($what);
     }
 
     /**
@@ -296,29 +283,35 @@ class User extends Beneficiary {
     function acceptTerms() {
         global $USER;
         if($USER->ID == $this->ID) {
-            $this->_AcceptedTerms = time();
-            Metadata::set('AcceptedTerms', $this->_AcceptedTerms);
+            $this->AcceptedTerms = time();
         }
     }
 
+    function isActive() {
+        return ($this->ID === NOBODY || (parent::isActive() && $this->termsAccepted()));
+    }
+
     /**
-     * Returns true if the terms are accepted and not expired
+     * Returns true if the latest terms are accepted and not expired
      * @return bool
      */
-    function isActiveUser() {
-        global $CONFIG, $Controller;
+    function termsAccepted() {
+        global $CONFIG, $DB, $Controller;
         $terms = $Controller->alias('Terms', OVERRIDE);
-
-        if($this->_AcceptedTerms < $terms->lastUpdated($this->settings['language'])) {
+        if( $this->AcceptedTerms < $DB->{"aliases,content"}->single(array(
+                'aliases.alias' => 'Terms',
+                'content.language' => $this->settings['language']
+            ),
+            'content.revision'
+        )) {
             return false;
         }
-
         $TO = $CONFIG->Site->TermsTimeOut;
         if($TO == -1) {
-            return $this->_AcceptedTerms>0;
+            return $this->AcceptedTerms>0;
         }
 
-        return !($TO > 0 && ($this->_AcceptedTerms<(time() - $TO*60*60*24*30)));
+        return !($TO > 0 && ($this->AcceptedTerms<(time() - $TO*60*60*24*30)));
     }
 
     /**
@@ -345,17 +338,17 @@ class User extends Beneficiary {
      * @return void
      */
     function loadUser($who){
+        if($this->user_loaded) return;
     global $DB, $Controller;
         $user = $DB->users->{(string)$who};
         if(!$user) return;
-
-        $this->getMetadata();
         $this->ID = $user['id'];
         $this->__set('Name', $this->_username = $user['username']);
         $this->_password = $user['password'];
         $this->_userinfo = $DB->userinfo->asList(array('id' => $this->ID), 'prop, val', false, true);
         if(!is_array($this->_userinfo)) $this->_userinfo = array();
     }
+    private $user_loaded = false;
 
     function may($u, $lvl) {
         global $USER;

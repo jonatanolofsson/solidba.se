@@ -28,31 +28,21 @@ if(@$CONFIG->base->ADMIN_GROUP) {
  */
 class Group extends Beneficiary{
     private $_GroupType = false;
-    private $_Image = false;
-    private $_DisplayMembers = false;
     private $DBMemberTable = 'group_members';
-    public $privilegeGroup = 'Groups';
     private $_MEMBERS=false;
     static public function installable() {return __CLASS__;}
     static public function uninstallable() {return __CLASS__;}
 
-    /**
-     * Sets the variables of the group and updates the database if nescessary.
-     * Unrecognized properties are forwarded to it's parent
-     * @param string $property The property which to change
-     * @param mixed $value The new value of the property
-     * @see solidbase/lib/Base#__set($property, $value)
-     */
-    function __set($property, $value) {
-        global $DB, $Controller, $USER;
-        if(in_array($property, array('DisplayMembers', 'GroupType', 'Image'))) {
-            $this->getGroupMeta();
-            $ipn = '_'.$property;
-            if($this->gtloaded && $this->mayI(EDIT) && $this->$ipn !== $value && ($this->$ipn || $value)) {
-                Metadata::set($property, $value);
-            }
-            $this->$ipn = $value;
-        } else parent::__set($property, $value);
+    public $editable = array(
+        'PermissionEditor' => EDIT_PRIVILEGES,
+        'GroupAdmin' => EDIT
+    );
+
+    function __construct($id) {
+        parent::__construct($id);
+        Base::registerMetadata('GroupType');
+        Base::registerMetadata('DisplayMembers');
+        Base::registerMetadata('Image');
     }
 
     /**
@@ -61,17 +51,13 @@ class Group extends Beneficiary{
      */
     function __get($property){
         switch($property) {
-            case 'ID':	if(!$this->_IDCACHE) $this->_IDCACHE = parent::__get('ID');
-                        return $this->_IDCACHE;
-            case 'DisplayMembers':
+            case 'MEMBERS':
+                $this->loadMembers();
             case 'GroupType':
-            case 'Image': $this->getGroupMeta();
-            case 'MEMBERS': if($property == 'MEMBERS') $this->loadMembers();
-                            return $this->{'_'.$property};
+                return $this->{'_'.$property};
             default: return parent::__get($property);
         }
     }
-    private $_IDCACHE;
 
     /**
      * Load the group details
@@ -85,26 +71,12 @@ class Group extends Beneficiary{
             $this->_MEMBERS = $DB->spine->asList(array('class' => 'User'), 'id', false, true);
             if($this->ID == MEMBER_GROUP) unset($this->_MEMBERS[NOBODY]);
         }
-        elseif($this->_GroupType == 'volpre') {
+        elseif($this->GroupType == 'volpre') {
             $this->_MEMBERS = $DB->asList("SELECT `spine`.`id` FROM `spine` WHERE `spine`.`class` IN ('User','Group') AND `spine`.`id` NOT IN (SELECT `user` FROM `group_members` WHERE `group`='".(int)$this->ID."') AND `spine`.`id` != '".(int)$this->ID."'");
         } else {
             $this->_MEMBERS = $DB->group_members->asList(array('group' => $this->ID), 'user');
         }
     }
-
-    /**
-     * Load grouptype from database
-     * @param $reload
-     * @return string Grouptype
-     */
-    function getGroupMeta($reload = false) {
-        if($this->gtload && !$reload) return;
-        $this->gtload = true;
-        $this->getMetadata('', $reload, array('GroupType', 'DisplayMembers', 'Image'));
-        $this->gtloaded = true;
-    }
-    private $gtload = false;
-    private $gtloaded = false;
 
     function run() {
         global $Templates, $Controller;
@@ -292,7 +264,7 @@ class Group extends Beneficiary{
         global $DB, $Controller, $USER;
 
         if(is_numeric($id)) {
-            $obj = $Controller->{$id};
+            $obj = $Controller->get($id);
         }
         elseif(is_a($id, 'Base')) {
             $obj = $id;
@@ -303,7 +275,7 @@ class Group extends Beneficiary{
         }
 
         if((in_array($this->GroupType, array('vol', 'volpre')) && $id == $USER->ID)
-             || $Controller->adminGroups(EDIT)) {
+             || $this->mayI(EDIT)) {
             $this->loadMembers();
             if(in_array($id, $this->_MEMBERS) XOR $this->GroupType == 'volpre') {
                 /*

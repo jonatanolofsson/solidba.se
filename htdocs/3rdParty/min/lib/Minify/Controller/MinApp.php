@@ -28,7 +28,7 @@ class Minify_Controller_MinApp extends Minify_Controller_Base {
                 'allowDirs' => '//'
                 ,'groupsOnly' => false
                 ,'groups' => array()
-                ,'maxFiles' => 10
+                ,'maxFiles' => 15
             )
             ,(isset($options['minApp']) ? $options['minApp'] : array())
         );

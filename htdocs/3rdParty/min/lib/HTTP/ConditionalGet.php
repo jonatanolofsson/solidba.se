@@ -8,7 +8,7 @@
 /**
  * Implement conditional GET via a timestamp or hash of content
  *
- * E.g. Content from Database with update time:
+ * E.g. Content from DB with update time:
  * <code>
  * list($updateTime, $content) = getDbUpdateAndContent();
  * $cg = new HTTP_ConditionalGet(array(
@@ -28,7 +28,7 @@
  * echo $content;
  * </code>
  *
- * E.g. Content from Database with no update time:
+ * E.g. Content from DB with no update time:
  * <code>
  * $content = getContentFromDB();
  * $cg = new HTTP_ConditionalGet(array(

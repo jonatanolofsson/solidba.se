@@ -622,9 +622,9 @@ class FirePHP {
     if($Type==self::TABLE) {
       
       if(isset($Object[0]) && is_string($Object[0])) {
-        $Object[1] = $this->encodEmptyTable($Object[1]);
+        $Object[1] = $this->encodeTable($Object[1]);
       } else {
-        $Object = $this->encodEmptyTable($Object);
+        $Object = $this->encodeTable($Object);
       }
 
       $skipFinalObjectEncode = true;
@@ -835,7 +835,7 @@ class FirePHP {
    * @param array $Table The table to be encoded
    * @return array
    */  
-  protected function encodEmptyTable($Table) {
+  protected function encodeTable($Table) {
     if(!$Table) return $Table;
     for( $i=0 ; $i<count($Table) ; $i++ ) {
       if(is_array($Table[$i])) {

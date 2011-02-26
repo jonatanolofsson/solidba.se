@@ -42,7 +42,7 @@ abstract class Beneficiary extends Page {
             }
         }
     }
-    
+
     private function loadParentGroups() {
         if($this->_parentGroups === false) {
             global $Controller;
@@ -55,10 +55,10 @@ abstract class Beneficiary extends Page {
             $this->_parentGroups = arrayExtract($parentGroups, 'ID');
         }
     }
-    
+
     /**
      * Returns the groups that the object is a member of.
-     * 
+     *
      * @param $objects If true, return the groups as objects
      * @param $self -1 = Return all parent groups and their parent groups in turn etc
      * 0 = Return only the parents parents
@@ -105,11 +105,18 @@ abstract class Beneficiary extends Page {
      * @param Group|integer $group Group object or id which to test for membership in
      * @return bool
      */
-    function memberOf($group){
-        global $Controller;
-        if(!is_object($group)) $group = $Controller->{(string)$group}('Group', OVERRIDE);
+    function memberOf($group, $quickndirty = false){
+        if($quickndirty) {
+            $this->loadMyGroups();
+            if(is_object($group)) $group = $group->ID;
+            return in_array($group, $this->_mygroupIds);
+        }
+        else {
+            global $Controller;
+            if(!is_object($group)) $group = $Controller->{(string)$group}('Group', OVERRIDE);
 
-        return $group->isMember($this);
+            return $group->isMember($this);
+        }
     }
 
     /**

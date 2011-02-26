@@ -7,12 +7,7 @@
  * @param string $class_name name of the class that's beeing loaded
  */
 function __autoload($class_name) {
-    try {
-        require_once $class_name . '.php';
-    }
-    catch(Exception $err) {
-        dump('Class '.$class_name . 'not found');
-    }
+    include_once($class_name . '.php');
 
 
     //FIXME: Replace
@@ -44,6 +39,18 @@ addPath(@file_get_contents(CACHE_DIR . 'path.cache'), true);
  * @see __autoinclude()
  */
 function validInclude($class_name){
-        return (file_exists($class_name . '.php'));
+    $filename = $class_name . '.php';
+    $paths = explode(PATH_SEPARATOR, get_include_path());
+    foreach ($paths as $path) {
+        if (substr($path, -1) == DIRECTORY_SEPARATOR) {
+            $fullpath = $path.$filename;
+        } else {
+            $fullpath = $path.DIRECTORY_SEPARATOR.$filename;
+        }
+        if (file_exists($fullpath)) {
+            return true;
+        }
+    }
+    return false;
 }
 ?>

@@ -27,6 +27,26 @@ function addPath($path, $pre = true) {
     }
 }
 
+function readDirFilesRecursive($dir, $ignorepath = false) {
+    $d = dir($dir);
+    $files = array();
+    while(false !== ($f = $d->read()))
+    {
+        if($f[0] == '.') continue;
+        $path = $dir.DIRECTORY_SEPARATOR.$f;
+        if(is_dir($path))
+        {
+            $files = array_merge($files, readDirFilesRecursive($path, $ignorepath));
+        }
+        else
+        {
+            $files[] = ($ignorepath?$f:$path);
+        }
+    }
+
+    return $files;
+}
+
 /**
  * retrieve the current subdomain
  * @return void
@@ -57,16 +77,33 @@ function associateSubdomain($sd=false) {
     }
 }
 
-function associateID($access = OVERRIDE) {
+function associateID($field = 'id', $aLevel = READ) {
     global $Controller;
-    if($obj = $Controller->get($_REQUEST['id'], $access)) return $obj;
-    while(($pos = strrpos($_REQUEST['id'], '/')) !== false)
+    if($obj = $Controller->get($_REQUEST[$field], $aLevel)) return $obj;
+    while(($pos = strrpos($_REQUEST[$field], '/')) !== false)
     {
-        $_REQUEST['id'] = substr($_REQUEST['id'], 0, $pos);
-        if($obj = $Controller->get($_REQUEST['id'], $access)) return $obj;
+        $_REQUEST[$field] = substr($_REQUEST[$field], 0, $pos);
+        if($obj = $Controller->get($_REQUEST[$field], $aLevel)) return $obj;
     }
 
-    return $false;
+    return false;
+}
+
+function associateEditor() {
+    $class = $_REQUEST['with'];
+    if(!class_exists($class)) return false;
+
+    if($obj = associateID('edit', OVERRIDE)) {
+        $editors = $obj->editable;
+        if(!in_array($class, array_keys($editors)) || !$obj)
+            return false;
+
+        if(!$class::canEdit($obj)
+        || !$obj->mayI($editors[$class]))
+            errorPage(401);
+
+        return new $class($obj);
+    } else return false;
 }
 
 /**
@@ -95,14 +132,15 @@ function flatten($args){
  * Generate an URL from the arguments passed and existing request variables.
  * If a string is passed as first argument, it is checked to begin with http:// and returned.
  * @param array|string $array Array of values to build a GET query from
- * @param array|string $keep Array of request variables to keep. A single such ma be passed as a string
+ * @param array|string $keep Array of request variables to keep. A single such may be passed as a string
+ * @param bool $validate Validate the parameters according to $_REQUEST before including in URL
+ * @param bool $SiteUrlOnEmptyParamSet Return the site's url if no parameters are passed
+ * @param bool $getAliases Attempt to replace ID's with their respective aliases
  * @return string
  */
 function url($array = false, $keep=false, $validate = true, $SiteUrlOnEmptyParamSet = false, $getAliases = true) {
-    if(is_string($array)) {
-        if(strtolower(substr($array, 0, 4)) == 'www.') return 'http://'.$array;
-        else return $array;
-    }
+    if(is_string($array) && !is_numeric($array) && strtolower(substr($array, 0, 4)) == 'www.') return 'http://'.$array;
+
     $pass = array();
     if($array == false) $array = array();
     if(!is_array($array)) $array = array('id' => $array);
@@ -160,12 +198,8 @@ function url($array = false, $keep=false, $validate = true, $SiteUrlOnEmptyParam
  * @param string $url Make the icon a link by using the $url argument, passing the URL on which to point.
  * @return string
  */
-function icon($which, $alt='', $url=false, $class=false) {
-    $r='';
-    if($url) $r.='<a href="'.$url.'" title="'.$alt.'"'.($class?' class="'.$class.'"':'').'>';
-    $r.='<img src="/3rdParty/icons/'.$which.'.png" title="'.$alt.'" alt="'.$alt.'" class="icon'.(($class && !$url)?' '.$class:'').'" />';
-    if($url) $r.='</a>';
-    return $r;
+function icon($which, $alt='', $url=false, $print_alt = false, $class=false) {
+    return new Icon($which, $alt, $url, $print_alt, $class);
 }
 
 /**
@@ -215,17 +249,26 @@ function unserial ( $var = FALSE, $recur = FALSE ) {
  * @param string|array $where New location. An array will be interpreted with url()
  * @return void
  */
-function redirect($where){
+function redirect($where=-2, $delay=false){
     if(is_object($where)) $where = array('id' => $where->ID);
-    if(is_numeric($where)) $where = array('id' => $where);
+    elseif(is_numeric($where)){
+        if($where <= 0) {
+            $where = url(@$_SESSION['TRACE'][-$where]['_GET'], false, false, false, true);
+        } else {
+            $where = array('id' => $where);
+        }
+    }
     if(is_array($where)) $where = url($where);
     $where = str_replace('&amp;', '&', $where);
     if(!$where) die();
     while(ob_get_level()) @ob_end_clean();
-    if(headers_sent()) {
+    if($delay) {
+        JS::raw('setTimeout("window.location.href=\''.$where.'\'",'. $delay*1000 .');');
+    }
+    elseif(headers_sent()) {
         echo "<script type=\"text/javascript\">
 <!--
-    location.href='$where';
+    window.location='$where';
 -->
 </script>";
     }
@@ -268,6 +311,7 @@ function inflate($list){
  * @return string
  */
 function listify($array, $class='list', $vary=true, $textfield = false, $childfield = false){
+    if(!$array) return;
     static $i = -1;
     static $recursion = 0;
     ++$recursion;
@@ -610,15 +654,12 @@ function getMime($filename){
  * @param mixed $value The value to remove
  * @return array
  */
-function arrayRemove($array, $value, $reorder=false) {
-    $r = array();
-    foreach($array as $key => $val) {
-        if($value != $val){
-            if($reorder) $r[] = $val;
-            else $r[$key] = $val;
-        }
+function arrayRemove($array, $values, $reorder=false) {
+    $values = (array)$values;
+    foreach($values as $value) {
+        while(false !== ($loc = array_search($value, $array))) unset($array[$loc]);
     }
-    return $r;
+    return ($reorder ? array_values($array) : $array);
 }
 
 /**
@@ -728,9 +769,9 @@ function trace(){
  * @param $name name to convert
  * @return string
  */
-function idfy($name){
+function idfy($name=false){
+    if(!$name) $name = uniqid(false, true);
     return 'id'.substr(md5($name),20);
-    return preg_replace('#[^a-z0-9]#','', strtolower($name));
 }
 
 /**

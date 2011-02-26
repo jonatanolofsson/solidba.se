@@ -19,10 +19,12 @@ define('PRIV_PATH', ROOTDIR . '/private/');
 
 session_start();
 require_once 'functions.php';
-require_once 'REQUEST.php';
+require_once 'XSSProtection.php';
 require_once 'autoload.php';
 
-$_REQUEST->setType('id', array('numeric', '#[a-z_0-9]+#'));
+$_REQUEST->setType('id', array('numeric', '#[a-z_0-9]+#i'));
+$_REQUEST->setType('edit', array('numeric', '#[a-z_0-9]+#i'));
+$_REQUEST->setType('with', '#[a-z][a-z_0-9]+#i');
 
 /**
  * Load and initiate the configuration class, loading database configuration
@@ -35,7 +37,7 @@ require_once CONFIG_DIR . '/pwdEncode.php';
  * Fire up the database
  * @var Database $DB The database object
  */
-$DB = new Database(		$CONFIG->DB->host,
+$DB = new Database( $CONFIG->DB->host,
                     $CONFIG->DB->username,
                     $CONFIG->DB->password,
                     $CONFIG->DB->db,
@@ -60,8 +62,23 @@ setlocale(LC_ALL, (@$_COOKIE['locale']
                         :(@$USER->settings->locale
                             ?@$USER->settings->locale
                             :$CONFIG->Site->locale)));
-bindtextdomain('yweb', './languages');
-textdomain('yweb');
+bindtextdomain('lweb', './languages');
+textdomain('lweb');
+
+//Config google analytics
+$CONFIG->Site->setDescription('googleAnalyticsSetAccount', 'Google Analytics User Account');
+if(empty($CONFIG->Site->googleAnalyticsSetAccount)) $CONFIG->Site->googleAnalyticsSetAccount = 'UA-19714960-1';
+//FIXME: move to a better place
+JS::raw("var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', '" . $CONFIG->Site->googleAnalyticsSetAccount . "']);
+  _gaq.push(['_setDomainName', '.ysektionen.se']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();", false);
 
 /**
  * Load site data

@@ -17,15 +17,9 @@ class Section{
      * @param bool $echo Wether to print the result or return it (defaults to true)
      * @return void|string
      */
-    function __construct($section, $echo = true){
-    global $PAGE;
-        $c = @$PAGE->content[$section];
-        if($echo) echo $c;
-    }
-    
-    function display() {
+    function __construct($section){
         global $PAGE;
-        echo @$PAGE->content[$section];
+        echo $PAGE->getContent($section);
     }
 }
 

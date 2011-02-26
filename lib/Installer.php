@@ -145,10 +145,10 @@ class Installer extends Page {
         global $CONFIG, $SITE;
         $installed = $CONFIG->base->installed;
 
-        $folders = array(	$SITE->base_dir. '/lib',
-                            $SITE->base_dir. "/admin_pages",
-                            $SITE->base_dir. "/pages",
-                            $SITE->base_dir. "/modules");
+        $folders = array(	ROOTDIR. '/lib',
+                            ROOTDIR. "/admin_pages",
+                            ROOTDIR. "/pages",
+                            ROOTDIR. "/modules");
         foreach($folders as $path) {
             $dir = dir($path);
 
@@ -169,8 +169,6 @@ class Installer extends Page {
     function run(){
         global $USER, $CONFIG, $Templates, $SITE, $Controller;
         if(!$this->may($USER, READ)) return;
-        $dirs = array('pages','modules','admin_pages','lib');
-        $tabs = array();
 
         $_REQUEST->setType('place', 'numeric');
         $_REQUEST->setType('parent', 'numeric');
@@ -183,44 +181,42 @@ class Installer extends Page {
                 Flash::create($_REQUEST['reinstall'].' '.__('was reinstalled'));
             } elseif($_REQUEST['new']) {
                 $class = $_REQUEST['new'];
-                if(validInclude($class) && ($class == 'MenuItem' || @is_subclass_of($class, 'MenuItem')) && $Controller->menuEditor->may($USER, EDIT)) {
+                if(validInclude($class) && ($class == 'MenuItem' || @is_subclass_of($class, 'MenuItem')) && $Controller->menuEditor->mayI(EDIT)) {
                     $obj = $Controller->newObj($class);
                     $obj->move(($_REQUEST['place']?$_REQUEST['place']:'last'), $_REQUEST['parent']);
-                    redirect(url(array('id' => 'menuEditor', 'status' => 'ok')));
+                    Flash::queue(__('New').' '.$class.' '.__('installed'));
+                    redirect(url(array('id' => 'menuEditor')));
                 }
                 unset($class);
             }
         }
         $installed = $CONFIG->base->installed;
-        foreach($dirs as $dir) {
-            $oDir = dir($SITE->base_dir.DIRECTORY_SEPARATOR.$dir);
-            $r = '<ul class="list">';
-            $i=0;
-            $entries = array();
-            while (false !== ($entry = $oDir->read())) $entries[] = $entry;
-            natcasesort($entries);
-            foreach($entries as $entry) {
-                if(substr($entry, -4) == '.php')
-                {
-                    $class = substr($entry, 0, -4);
+        $dir = 'plugins';
 
-                    $r .= '<li class="'.($i++%2?'odd':'even').'"><span class="fixed-width">';
-                    $r .= $class;
-                    $methods = (class_exists($class)?get_class_methods($class):array());
-                    $r .='</span><div class="tools">'
-                        .(($this->may($USER, EDIT) &&
-                        (@in_array('installable', $methods) && @in_array('install', $methods) && call_user_func(array($class, 'installable')) == $class))
-                            ?icon('small/arrow_refresh_small', __('Reinstall'), url(array('reinstall' => $class), array('id'))):'')
-                        .((($class == 'MenuItem' || @is_subclass_of($class, 'MenuItem')) && $Controller->menuEditor->may($USER, EDIT))
-                            ?icon('small/add', __('Add new instance to menu'), url(array('new' => $class), array('id'))):'')
-                    .'</div></li>';
-                }
+        $fullpath = ROOTDIR.DIRECTORY_SEPARATOR.$dir;
+        $entries = readDirFilesRecursive($fullpath, true);
+        natcasesort($entries);
+        $i = 0; $c = array();
+        foreach($entries as $entry) {
+            if(substr($entry, -4) == '.php')
+            {
+                $class = substr($entry, false, -4);
+                $methods = (class_exists($class)?get_class_methods($class):array());
+
+                $c[] = '<span class="fixed-width">'
+                    .$class
+                    .'</span><div class="tools">'
+                    .(($this->may($USER, EDIT) &&
+                    (@in_array('installable', $methods) && @in_array('install', $methods) && call_user_func(array($class, 'installable')) == $class))
+                        ?icon('small/arrow_refresh_small', __('Reinstall'), url(array('reinstall' => $class), array('id'))):'')
+                    .((($class == 'MenuItem' || @is_subclass_of($class, 'MenuItem')) && $Controller->menuEditor->may($USER, EDIT))
+                        ?icon('small/add', __('Add new instance to menu'), url(array('new' => $class), array('id'))):'')
+                    .'</div>';
             }
-            $r .= '</ul>';
-            $tabs[] = new EmptyTab(ucwords(str_replace('_', ' ', $dir)),
-                                $r);
         }
-        $this->content = array('header' => __('Installer'), 'main' => new Tabber('installs', $tabs));
+
+        $this->setContent('header', __('Installer'));
+        $this->setContent('main', listify($c));
 
         $Templates->admin->render();
     }

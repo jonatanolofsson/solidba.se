@@ -1,7 +1,7 @@
 <?php
 // Konfiguration:
 error_reporting(E_ALL);$i=0;
-chdir('/home/yweb/site/');
+chdir('..');
 //FIXME: Korrigera sökväg efter flytt
 include './lib/init.php';
 
@@ -31,11 +31,11 @@ while(false !== ($Message = Database::fetchAssoc($Messages_Resource)))
                 $sent_to[] = $Recipient;
                 $Recipient = $Controller->get($Recipient, OVERRIDE, false, false);
                 if(!is_object($Recipient) || !is_a($Recipient, 'User')) continue;
-                if(!$Message['override_membercheck'] && !($Recipient->isActiveUser())) continue;
+                if(!$Message['override_membercheck'] && !($Recipient->isActive())) continue;
 
-                $namn['full'] 	= @$Recipient->userinfo['cn'];
-                $namn['first'] 	= @$Recipient->userinfo['givenName'];
-                $namn['sur'] 	= @$Recipient->userinfo['sn'];
+                $namn['full']   = @$Recipient->userinfo['cn'];
+                $namn['first']  = @$Recipient->userinfo['givenName'];
+                $namn['sur']    = @$Recipient->userinfo['sn'];
                 $msg = str_replace(array('{name}', '{firstname}', '{surname}'), array($namn['full'], $namn['first'], $namn['sur']), $Message['message']);
                 $text = html_entity_decode(strip_tags(preg_replace('#<(p|br|/p)[^>]*>#i', "\n", $msg)), ENT_COMPAT, 'UTF-8');
 

@@ -121,7 +121,7 @@ class CompanyEditor extends Page {
         }else{
             $this->content = array('header' => $this->Name, 'main' => $this->displayCompanies());
         }
-        
+
         $Templates->admin->render();
     }
 
@@ -185,7 +185,7 @@ class CompanyEditor extends Page {
         }
         else $edit = false;
         $form = new Form(($edit?'updCompanySubm':'newCompanySubm'), url(null, 'id'));
-        
+
         return '<div class="nav"><a href="'.url(array('id' => 'companyEditor')).'">'.icon('small/arrow_up').__('To company manager').'</a></div>'
         .$form->collection(
                         new Fieldset(($edit?__('Edit existing comapny'):__('Create a new company')),
@@ -193,7 +193,7 @@ class CompanyEditor extends Page {
                             new Input(__('Name'), 'name', @$company->Name, 'nonempty', __('Name of the company')),
                             new ImagePicker(__('Logo'), 'logo', @$company->logo, 'nonempty', __('Company logo')),
                             new Input(__('URL'), 'url', @$company->URL, 'nonempty', __('URL to company page')),
-                            new Checkbox(__('Automatic Redirect'), 'redirect', @$company->redirect, false, __('Redirect to Company URL instead of showing local page')),
+                            new Checkbox(__('Automatic Redirect'), 'redirect', @$company->redirect, false, false, __('Redirect to Company URL instead of showing local page')),
                             new Input(__('Weight'), 'weight', @$company->weight, 'nonempty', __('Initial weight of the company')),
                             new Select(__('Type'), 'type', array('main' => __('Main sponsor'), 'sub' => __('Sub sponsor')), @$company->type)
                     )

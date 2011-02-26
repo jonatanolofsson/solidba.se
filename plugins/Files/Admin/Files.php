@@ -5,6 +5,11 @@ class Files extends Page {
     private $DBTable = 'menu';
     private $ignore = array('Userimages', 'Userfiles', 'UserDirectory');
 
+    public $editable = array(
+        'PermissionEditor' => EDIT_PRIVILEGES,
+        'MenuEditor' => EDIT
+    );
+
     /**
      * Sets up the object
      * @param integer $id ID of the object
@@ -134,60 +139,13 @@ class Files extends Page {
             }
             $r .= '</ul>';
         }
-        $this->content = array('header' => __('Files and directories'), 'main' => $r);
+        $this->setContent('header', __('Files and directories'));
+        $this->setContent('main', $r);
         $t = 'admin';
         if($_REQUEST['popup'])
             $t = 'popup';
 
         $Templates->$t->render();
-    }
-
-    /**
-     * View contents of folders to which the user has access
-     * @param $url URL to send the rendered links to. "$" in the URL will be replaced with the ID of the link
-     * @return HTML
-     */
-    function fullStructure($url=false){
-        global $DB, $USER, $Controller;
-
-        $r = '';
-        if($Controller->{ADMIN_GROUP}(OVERRIDE)->isMember($USER)) {
-            $objs = array($Controller->fileRoot);
-        } else {
-            $privilegeIDS = array_merge((array)$USER->ID, $USER->groupIds);
-            $objs = $Controller->get($DB->asList("SELECT spine.id FROM spine RIGHT JOIN privileges ON spine.id = privileges.id WHERE spine.class = 'Folder' AND privileges.beneficiary IN ('".join("','", Database::escape($privilegeIDS, true))."') AND privileges.privileges > 0"), ANYTHING, false, false);
-        }
-        $Folders = array();
-
-        foreach($objs as $obj) {
-            $p = $obj;
-            while($p = $p->Dir) {
-                if(!$p->may($USER, READ)) break;
-                elseif(isset($objs[$p->ID])) continue 2;
-            }
-            if(is_a($obj, 'Folder')) {
-                if(!in_array($obj->filename, $this->ignore))
-                    $Folders[$obj->filename] = $obj;
-            }
-        }
-
-        ksort($Folders);
-        return listify(array_map(array($this, 'fsMAP'), $Folders, array_fill(0, count($Folders), $url)));
-    }
-
-    /**
-     * Display file link
-     * @param $obj Top folder
-     * @param $url URL to send the rendered links to. "$" in the URL will be replaced with the ID of the link
-     * @return HTML Rendered list
-     */
-    function fsMAP($obj, $url){
-        if(is_array($obj)) return arrap_map(array($this, 'fsMAP'), $obj, array_fill(0, count($obj), $url));
-
-        $subfolders = @$obj->Folders;
-        return '<a href="'.str_replace(array('%24', '$'), $obj->ID, $url).'">'.$obj.'</a>'
-            .(@empty($subfolders)?''
-                :listify(array_map(array($this, 'fsMAP'), $subfolders, array_fill(0, count($subfolders), $url))));
     }
 
     /**

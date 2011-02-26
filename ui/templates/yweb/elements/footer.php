@@ -19,6 +19,7 @@
         <div class="col four right">
             <ul>
                 <li>&copy; 2008-<?=date('Y')?> Link&ouml;pings Y-teknologsektion</li>
+                <li><?php echo $Controller->{"kakor"}->link(); ?></li>
                 <li><a href="mailto:<?=$Controller->{(string)ADMIN_GROUP}(OVERRIDE)->getEmail() ?>">Webmaster</a></li>
             </ul>
             <?php new Box('toolbox'); ?>

@@ -1,113 +1,130 @@
 <?php
 
 class Event extends Page {
-    private $type;
-    private $_News;
-    private $text;
-    private $_Image = false;
-    private $start;
-    private $end;
-    private $calendar;
-    private $place;
-    public $privilegeGroup = 'hidden';
-    
+    private $_start,
+            $_end,
+            $_soft_deadline,
+            $_hard_deadline,
+            $_send_reminder,
+            $_calendar;
+
+    public $editable = array(
+        'EventEditor' => EDIT,
+        'PermissionEditor' => EDIT_PRIVILEGES
+    );
+
     function __construct($id=false) {
-        global $DB;
         parent::__construct($id);
-        //FIXME: Don't load whole event unless needed
-        $info = $DB->events->{$id};
-        $this->type = $info['type'];
-        $this->text = $info['text'];
-        $this->start = $info['start'];
-        $this->end = $info['end'];
-        $this->calendar = $info['calendar'];
-        $this->getMetadata('', false, array('Image'));
-        $this->place = $info['place'];
+        Base::registerMetadata(array(
+            'Image',
+            'contact',
+            'attendance',
+            'attending_groups'
+        ));
     }
-    
+
+
+    function __create() {
+        parent::__create();
+        $this->Name = __('New event');
+    }
+
+
+
     /**
      * Function for getting a event property
      * @param string $property Reqested property
      * @return string
      */
     function __get($property) {
-        if(in_array($property, array('text', 'start', 'end', 'calendar', 'place', 'type')))
-            return $this->$property;
-        elseif(in_array($property, array('Image', 'News')))
-            return $this->{'_'.$property};
-        elseif($property == 'time')
-            return $this->getTime();
-        else return parent::__get($property);
+        switch($property) {
+            case 'time': return $this->getTime();
+            case 'text':
+                $this->loadContent();
+                return @$this->content['main'];
+            case 'attendance_information':
+                $this->loadContent();
+                return @$this->content['attendance'];
+            case 'start':
+            case 'calendar':
+            case 'end':
+            case 'soft_deadline':
+            case 'hard_deadline':
+            case 'send_reminder':
+                $this->loadEvent();
+                return $this->{'_'.$property};
+            default: return parent::__get($property);
+        }
     }
 
-    /**
-     * Function for setting a event property
-     * @param string $property Property to be set
-     * @param string|number $value The value of the property
-     * @return void
-     */
     function __set($property, $value) {
+        switch($property) {
+            case 'start':
+            case 'end':
+            case 'soft_deadline':
+            case 'hard_deadline':
+            case 'send_reminder':
+            case 'calendar';
+                global $DB;
+                $DB->events->update(array($property => $value), array('id' => $this->ID), true);
+                return $this->{'_'.$property} = $value;
+            default: return parent::__set($property, $value);
+        }
+    }
+
+    function loadEvent() {
+        if($this->_start) return;
         global $DB;
-        $ipn = '_'.$property;
-        if(in_array($property, array('text', 'start', 'end', 'calendar', 'place', 'type'))){
-            if($this->$property != $value) {
-                $this->$property = $value;
-                $DB->events->{$this->ID} = array($property => $value);
-            }
-        } else if(in_array($property, array('Image', 'News'))) {
-            if($value != @$this->$ipn && ($value || @$this->$ipn)) {
-                if(@$this->$ipn !== false && $this->mayI(EDIT)) {
-                    Metadata::set($property, $value);
-                }
-            }
-            $this->$ipn = $value;
-        } else parent::__set($property, $value);
+        $e = $DB->events->{(string)$this->ID};
+        $this->_calendar = $e['calendar'];
+        $this->_start = $e['start'];
+        $this->_end = $e['end'];
+        $this->_soft_deadline = $e['soft_deadline'];
+        $this->_hard_deadline = $e['hard_deadline'];
+        $this->_send_reminder = $e['send_reminder'];
     }
-    
-    function delete() {
-        global $DB,$Controller;
-        $DB->events->delete(array('id' => $this->ID));
-        parent::delete();
-    }
-    
+
     /**
      *
      */
     function run() {
         global $Templates;
+        $this->saveAttendance();
         $this->setContent('main',$this->getFull());
-        $Templates->yweb('empty')->render();
+        $Templates->render();
     }
-    
+
     /**
      *
      */
     function getShort($link=false) {
         $r = '<div class="cols"><div class="col first eight bordered thinner '.$this->active(true).'">';
-        $r .= '<div class="cols"><div class="col first '.($this->Image?'four':'seven').'"><h2>'.$this->Name.$this->active().'</h2><p class="date">'.$this->getTime().'</p>'.($this->place?'<p><strong>'.__('Place').':</strong> '.$this->place.'</p>':'').'<p>'.$this->getPreamble(100).'</p>'.($link?'<p><a href="'.url(array('event' => $this->ID),'id').'">Read more</a></p>':'').'</div>'.($this->Image?'<div class="col two right alignright">'.$this->getImage(110).'</div>':'').'</div></div></div>';
+        $r .= '<div class="cols"><div class="col first '.($this->Image?'four':'seven').'"><h2>'.$this->Name.$this->active().'</h2><p class="date">'.$this->getTime().'</p>'.($this->place?'<p><strong>'.__('Place').':</strong> '.$this->place.'</p>':'').'<p>'.$this->getPreamble(100).'</p>'.($link?'<p><a href="'.url(array('id' => $this->ID)).'">Read more</a></p>':'').'</div>'.($this->Image?'<div class="col two right alignright">'.$this->getImage(110).'</div>':'').'</div></div></div>';
         return $r;
     }
-    
+
     /**
      *
      */
     function getFull() {
-        $r = '<h1>'.$this->Name.'</h1><p class="date">'.$this->getTime().'</p>'.($this->place!=''?'<p><strong>'.__('Place').':</strong> '.$this->place.'</p>':'');
-        $r .= '<div class="cols spacer"><p class="author">'.__('Author').$this->author->getLink().'</p><hr /><div class="col first six">'.$this->text.'</div><div class="col six">'.$this->getImage(350).'</div></div>';
+        global $Controller;
+        $r = '<h1>'.$this->Name.'</h1><span class="whichcal">'.$Controller->{$this->calendar}.'</span><p class="date">'.$this->getTime().'</p>'.($this->place!=''?'<p><strong>'.__('Place').':</strong> '.$this->place.'</p>':'');
+        $r .= '<div class="cols spacer"><div class="col first six">'.$this->text.'</div><div class="col six">'.$this->getImage(350).'</div></div>';
+        $r .= $this->displayAttendance();
         return $r;
     }
-    
-    
+
+
     function getBox() {
         return '<div class="cols spacer"><div class="col first six bordered"><div class="cols"><div class="col first ">'.icon('large/1day-32').'</div><div class="col three"><h2>'.$this->Name.'</h2><p>'.$this->getTime().'</p></div></div></div>';
     }
-    
+
     function getLink() {
         $_REQUEST->setType('event', 'string');
         return '<ul class="links"><li><p><a href="'.url(array('id' => 'calendar', 'event' => $this->ID)).'">'.__('Calendar Event').'</a></p></li></ul>';
     }
-    
-    
+
+
     function getImage($maxWidth=false, $maxHeight=false) {
         if($this->_Image) {
             global $Controller;
@@ -127,16 +144,16 @@ class Event extends Page {
         return '';
     }
 
-    
+
     /**
      *
      */
-    function getTime() { 
+    function getTime() {
         //FIXME: Fix output
         $start = array('time' => strftime('%H:%M',$this->start), 'day' => strftime('%e',$this->start), 'monthStr' => strftime('%B',$this->start), 'year' => strftime('%Y',$this->start));
-        
+
         $end = array('time' => strftime('%H:%M',$this->end), 'day' => strftime('%e',$this->end), 'monthStr' => strftime('%B',$this->end), 'year' => strftime('%Y',$this->end));
-/* 		dump($start,$end); */
+/*      dump($start,$end); */
         $startStr = $endStr = '';
         foreach($start as $key => $value){
             if($start[$key] != $end[$key] && $start[$key] != '00:00') $startStr .= $start[$key].' ';
@@ -145,7 +162,7 @@ class Event extends Page {
 
         return $startStr.($startStr != ''?'- ':'').$endStr;
     }
-    
+
     /**
      *
      */
@@ -161,7 +178,35 @@ class Event extends Page {
             }
         }
     }
-    
+
+    function saveAttendance() {
+        $_REQUEST->setType('attending', '/yes|no/');
+        $_REQUEST->setType('user', 'numeric');
+        $_REQUEST->setType('comment', 'string');
+
+        if($_REQUEST['attending']) {
+            if($_REQUEST['user'] && $this->mayI(EDIT)) {
+                $user = $_REQUEST['user'];
+            } else {
+                global $USER;
+                $user = $USER->ID;
+            }
+            global $DB;
+
+            $DB->attendance->update(array(
+                'attending' => $_REQUEST['attending'],
+                'comment' => $_REQUEST['comment']
+            ), array(
+                'event' => $this->ID,
+                'attendee' => $user
+            ), true);
+
+            Flash::queue(__('Saved'));
+            return true;
+        }
+        return false;
+    }
+
     function getPreamble($limit=false) {
         global $CONFIG;
         if(!$limit)	$limit = 300;
@@ -170,7 +215,7 @@ class Event extends Page {
         return lineTrim($text, $limit);
     }
 
-    
+
     /**
      *
      */
@@ -178,9 +223,163 @@ class Event extends Page {
         if(is_bool($pr = parent::may($u, $lvl))) {
             return $pr;
         } else {
-            return $this->isActive();
+            global $Controller;
+            $c = $this->calendars;
+            foreach($c as $cal) {
+                if($Controller->get($cal, $lvl)) return true;
+            }
+            if($lvl&READ) {
+                return $this->isActive();
+            } else return $pr;
         }
     }
 
+    function attendanceForm() {
+        global $USER;
+        $att = $this->getAttendance();
+        return Form::quick(false, null,
+            /*($this->mayI(EDIT)
+                ? new UserSelect(__('User'), 'user', $USER->ID)
+                : null),*/
+            new RadioSet(__('Attending'), 'attending',
+                array('yes' => __('Yes'), 'no' => __('No')),
+                @$att[$USER->ID]['attending']),
+            new Input(__('Comment'), 'comment', @$att[$USER->ID]['comment'])
+        );
+    }
+
+    function isAttending($u, $asString = false) {
+        $a = $this->getAttendance();
+        if(!isset($a[$u->ID])) return null;
+        if($asString) return $a[$u->ID]['attending'];
+        else return $a[$u->ID]['attending'] == 'yes';
+    }
+
+    function displayAttendance() {
+        if(!$this->attendance) return false;
+        global $USER;
+
+        if(!$this->mayI(EDIT)) {
+            if(!is_array($g = $this->attending_groups)) $g = array();
+            $mayattend = false;
+            foreach($g as $group) {
+                if($USER->memberOf($group)) {
+                    $mayattend = true;
+                    break;
+                }
+            }
+            if(!$mayattend) return false;
+        }
+        return $this->attendanceStatistics()
+        .$this->attendanceForm()
+        .$this->attendanceList();
+    }
+
+    function attendanceStatistics() {
+        $attending = $this->getAttendance();
+        global $CONFIG, $Controller;
+        if(!is_array($ig = $this->attending_groups)) $ig = array();
+        $counter = array('yes' => array(), 'no' => array());
+        $tcounter = array('yes' => 0, 'no' => 0);
+        foreach($attending as $id =>$a) ++$tcounter[$a['attending']];
+        $unknown = array();
+        foreach($ig as $gid) {
+            $group = $Controller->get($gid, OVERRIDE);
+            $counter['yes'][$group->Name] = 0;
+            $counter['no'][$group->Name] = 0;
+            $unknown[$group->Name] = count($group->memberUsers(true, true));
+            if($group) {
+                foreach($attending as $id =>$a) {
+                    if($group->isMember($id)) {
+                        $counter[$a['attending']][$group->ID] = @$counter[$group->Name] + 1;
+                        --$unknown[$group->Name];
+                    }
+                }
+            }
+        }
+
+        $colspan = 2*count($ig)+1;
+        $r = '<table cellpadding="0" cellspacing="0" border="0">'
+        .'<tr><th>'.__('Contact').'</th>'
+            .'<td colspan="'.$colspan.'">'.$this->contact.'</td>'
+        .'</tr>'
+        .'<tr><th>'.__('When').'</th>'
+            .'<td colspan="'.$colspan.'">'.Short::datespan($this->start, $this->end).'</td>'
+        .'</tr>'
+        .'<tr><th>'.__('Last registration date').'</th>'
+            .'<td colspan="'.$colspan.'">'.date('Y-m-d', $this->soft_deadline).'</td>'
+        .'</tr>'
+        .'<tr><th>'.__('Attending').'</th>'
+            .'<td>'.$tcounter['yes'].'</td>';
+        ksort($counter['yes']);
+        foreach($counter['yes'] as $g => $count) {
+            $r .= '<td class="groupcol">'.$g.'</td><td>'.$count.'</td>';
+        }
+        $r .= '</tr><tr><th>'.__('Not attending').'</th>'
+            .'<td>'.$tcounter['no'].'</td>';
+        ksort($counter['no']);
+        foreach($counter['no'] as $g => $count) {
+            $r .= '<td class="groupcol">'.$g.'</td><td>'.$count.'</td>';
+        }
+        $r .= '</tr><tr><th>'.__('Unknown').'</th>'
+            .'<td>'.array_sum($unknown).'</td>';
+        ksort($unknown);
+        foreach($unknown as $g => $count) {
+            $r .= '<td class="groupcol">'.$g.'</td><td>'.$count.'</td>';
+        }
+        $r .= '</tr></table>';
+
+        return $r;
+    }
+
+    function attendanceList() {
+        global $Controller;
+        $attending = $this->getAttendance();
+        $objects = $Controller->get(array_keys($attending), OVERRIDE);
+
+        $groupsort = array();
+        $nogroup = $attending;
+
+        global $CONFIG, $Controller;
+        if(!is_array($ig = $CONFIG->matrikel->interesting_groups)) $ig = array();
+        $groups = $Controller->get($ig);
+
+        foreach($attending as $id => $a) {
+            foreach($ig as $gid) {
+                if($groups[$gid]->isMember($id)) {
+                    $groupsort[$groups[$gid]->Name] = $a;
+                    unset($nogroup[$id]);
+                    break;
+                }
+            }
+        }
+        foreach($groupsort as &$group) {
+            propsort($group, 'Name');
+        }
+        ksort($groupsort);
+        propsort($nogroup, 'Name');
+
+        $r = array(new Tableheader(__('Name'), __('Group'), __('Attending'), __('Comment'))); //FIXME: Stämma
+        foreach($groupsort as $groupname => $group) {
+            foreach($group as $user) {
+                $u = $object[$user['attendee']];
+                $r[] = new Tablerow($u->Name, $group, $user['attending'], $user['comment']);
+            }
+        }
+        foreach($nogroup as $user) {
+            $u = $objects[$user['attendee']];
+            $r[] = new Tablerow($u->Name, '', $user['attending'], $user['comment']);
+        }
+        return new Table($r);
+    }
+
+    function getAttendance() {
+        if($this->__attendance === false) {
+            global $DB;
+            $this->__attendance = $DB->attendance->asArray(array('event' => $this->ID), 'attendee,*', false, 2);
+        }
+        return $this->__attendance;
+    }
+    private $__attendance = false;
 }
 ?>

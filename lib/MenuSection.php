@@ -13,8 +13,13 @@
  * @package Menu
  */
 class MenuSection extends MenuItem {
-    public $privilegeGroup = 'Sections';
     private $_template = false;
+
+    public $editable = array(
+        'MenuSectionEditor' => EDIT,
+        'PermissionEditor' => EDIT_PRIVILEGES,
+        'MenuEditor' => EDIT
+    );
 
     /**
      * Pass the contruction call the parent and set up the name-alias relationship
@@ -27,6 +32,7 @@ class MenuSection extends MenuItem {
 
         $this->loadAliases();
         $this->Name = $this->alias;
+        Base::registerMetadata('template', 'inherit');
     }
 
     /**
@@ -35,23 +41,8 @@ class MenuSection extends MenuItem {
      * @see solidbase/lib/MenuItem#__set($property, $value)
      */
     function __set($property, $value){
-        global $USER;
-        if($property == 'template') {
-            $ipn = '_'.$property;
-            $this->sload();
-            if($this->may($USER, EDIT)) {
-                if($this->$ipn !== false) {
-                    if($value != @$this->$ipn) {
-                        Metadata::$metameta = false;
-                        Metadata::set($property, $value);
-                    }
-                }
-            }
-            $this->$ipn = $value;
-        } else {
-            if($property === 'Name') $property = 'alias';
-            parent::__set($property, $value);
-        }
+        if($property === 'Name') $property = 'alias';
+        parent::__set($property, $value);
     }
 
     /**
@@ -59,21 +50,15 @@ class MenuSection extends MenuItem {
      * @see lib/MenuItem#__get($property)
      */
     function __get($property) {
-        if($property == 'template') {
-            $this->sload();
-            if(empty($this->_template)) return 'inherit';
-            else return $this->{'_'.$property};
-        }
-        elseif($property == 'Name') return parent::__get('alias');
-        else return parent::__get($property);
+        if($property === 'Name') $property = 'alias';
+        return parent::__get($property);
     }
 
-    function sload($force=false){
-        if($this->sloaded && !$force) return;
-        $this->sloaded = true;
-        $this->getMetadata();
+    function run() {
+        $c = $this->children(false);
+        if($c) redirect($c[0]);
+        else redirect(-1);
     }
-    private $sloaded = false;
 
 
 

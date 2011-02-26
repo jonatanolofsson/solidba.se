@@ -18,12 +18,22 @@ class JS {
     }
 
     function loadjQuery($UI=true, $defer=true) {
+/*
+        google::load('jquery', '1');
+*/
         Head::add('jquery/jquery-1*', 'js-lib', false, false);
-        if($UI) Head::add('jquery/jquery-ui-1*', 'js-lib', false, false);
+        if($UI) {
+            global $CONFIG;
+            Head::add($CONFIG->UI->jQuery_theme.'/jquery-ui-*', 'css-lib');
+            Head::add('jquery/jquery-ui-1*', 'js-lib', false, false);
+/*
+            google::load('jqueryui', '1');
+*/
+        }
     }
 
-    function raw($what){
-        Head::add($what, 'js-raw');
+    function raw($what, $defer = -1){
+        Head::add($what, 'js-raw', $defer);
     }
 
     function lib($what, $IE=false, $defer=true) {
@@ -58,7 +68,7 @@ class JS {
                     else JS::lib($d, $IE, $defer);
                 }
             }
-            Head::add($inc, 'js-lib', $defer, true, 'auto', $IE);
+            Head::add($inc, 'js-lib', $defer, true, $IE);
         }
     }
 }

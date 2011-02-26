@@ -22,13 +22,14 @@ class Menu{
      */
     function __construct($which, $maxlevel=false, $extendActive=false, $ignore_sections=false, $quiet=false, $includeDescription=false, $excludeSelf = false){
     global $DB, $Controller, $CURRENT, $USER;
+        if($extendActive == -1) $extendActive = 10e4;
         if(is_string($which) || is_numeric($which)) $which = $Controller->{(string)$which}(OVERRIDE);
-        if($which 
-            && ((is_a($which, 'MenuSection') && $which->may($USER, READ, true)) 
+        if($which
+            && ((is_a($which, 'MenuSection') && $which->may($USER, READ, true))
                 || $which->mayI(READ))) {
             $which = $which->ID;
         } else return false;
-        
+
         if(!is_numeric($which) || !$which) return false;
         $ids = array();
         $AllObjects = array();
@@ -42,7 +43,7 @@ class Menu{
             $AllObjects[$which] = $menuparentObject;
         }
         $i=0;
-        
+
         while(count($pids)>0) {
             $dbids = $DB->menu->asList(array('parent' => $pids), 'id', false, false, 'place');
             if(!$dbids) break;
@@ -56,8 +57,8 @@ class Menu{
                     }
                 } elseif($o->mayI(READ)) $newObjects[] = $o;
             }
-            
-            
+
+
             $pids = array();
             foreach($newObjects as $obj) {
                 if(is_a($obj, 'MenuSection')) {
@@ -85,7 +86,7 @@ class Menu{
 
         $menu = array();
         foreach($AllObjects as $m) {
-            if(is_a($m, 'MenuItem') && $m->enabled) {
+            if(is_a($m, 'MenuItem') && $m->isActive()) {
                 $menu[] = array(	"id" => $m->ID,
                                     "parent" => @$parents[$m->ID],
                                     "item" => $m);
@@ -147,7 +148,7 @@ class Menu{
                         if($i==0) $classes[] = 'mfirst';
                         if($i==$c) $classes[] = 'mlast';
                     }
-                    if(in_array($item['id'], $active)) { $classes[] = 'selectedLava'; $classes[] = 'activeli';}
+                    if(in_array($item['id'], $active)) {$classes[] = 'activeli';}
                     $r .= '<li'.(empty($classes) ? '' : ' class="'.join(' ', $classes).'"').'>';
                     if($item['item']->link === false) $link = array("id" => ($item['item']->alias?$item['item']->alias:$item['item']->ID));
                     else $link = $item['item']->link;
@@ -180,24 +181,24 @@ class Menu{
 
         return $r;
     }
-    
-    
+
+
     /**
      * Output the submenu from a page
      * @param $page Which page
-     * @return void 
+     * @return void
      */
     function subMenu($page=false)
     {
-        global $Controller, $PAGE; 
-        
+        global $Controller, $PAGE;
+
         $UP = false;
         if(!$page) $page = $PAGE;
         elseif(is_numeric($page) || is_string($page)) {
             $page = $Controller->{(string)$page};
         }
         $args = func_get_args();
-        
+
         call_user_func_array(array($page, 'subMenu'), $args);
     }
 }

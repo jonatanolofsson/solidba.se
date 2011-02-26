@@ -9,9 +9,8 @@ class FlowItem extends Page {
 
     function __construct($id, $language=false) {
         parent::__construct($id, $language);
-        $this->_edit_link = url(array('id' => 'eventAdmin', 'edit' => $id), null, false);
 
-        $this->getMetadata('', false, array('Cal', 'Image', 'Activated'));
+        $this->registerMetadata(array('Cal', 'Image', 'Activated'));
     }
 
     function __get($property) {

@@ -243,7 +243,7 @@ class LDAPImport extends Page
             if (!(@empty($_REQUEST['searchldapattr'])) && !(@empty($_REQUEST['searchldapstring']))) {
                 $this->searchLDAP($_REQUEST['searchldapattr'], $_REQUEST['searchldapstring']);
             }
-            $userlist = new Table(array_map(create_function('$a', '$a[0] = new Checkbox(false,\'removeimport[]\',false,false,false,htmlentities($a[0])); return new Tablerow($a);'), $this->userImportList($CONFIG->LDAP->listattrs)));
+            $userlist = new Table(array_map(create_function('$a', '$a[0] = new Checkbox(false,\'removeimport[]\',false,false,false,false,htmlentities($a[0])); return new Tablerow($a);'), $this->userImportList($CONFIG->LDAP->listattrs)));
 
             $this->setContent('main',
                 $editform->set($userlist,

@@ -232,10 +232,10 @@ class Settings extends ArrayObject {
             case 'CSV':
                 $value = @join(',', $value);
             case 'text':
-                    return new Input(ucwords(__(str_replace('_', ' ', $property))), $name, $value, null, __($description));
+                    return new Input(self::name($property), $name, $value, null, __($description));
                 break;
             case 'password':
-                    return new password(ucwords(__(str_replace('_', ' ', $property))), 'usersettings['.$c['property'].']', '********', null, __($description));
+                    return new Password(self::name($property), 'usersettings['.$c['property'].']', '********', null, __($description));
                 break;
             case 'set': $mult=true;
             case 'select':
@@ -243,13 +243,17 @@ class Settings extends ArrayObject {
                     $set = $DB->setset->getCell(array('property' => $property), 'set');
                 }
                 if(is_array($set)) {
-                    return new Select(ucwords(__(str_replace('_', ' ', $property))), $name, array_map('__', $set), $value, $mult, false, false, __($description));
+                    return new Select(self::name($property), $name, array_map('__', $set), $value, $mult, false, false, __($description));
                 } else return false;
                 break;
             case 'check':
-                return new Checkbox(ucwords(__(str_replace('_', ' ', $property))), $name, $value, false, __($description));
+                return new Checkbox(self::name($property), $name, $value, $value, false, __($description));
                 break;
         }
+    }
+
+    function name($property) {
+        return ($property?ucwords(__(str_replace('_', ' ', $property))):false);
     }
 }
 ?>

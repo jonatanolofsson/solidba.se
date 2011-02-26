@@ -66,7 +66,8 @@ class ConfigEditor extends Page {
             }
         }
 
-        $this->content = array('header' => 'Edit configuration', 'main' => $this->viewAll());
+        $this->setContent('header', 'Edit configuration');
+        $this->setContent('main', $this->viewAll());
 
         $Templates->admin->render();
     }
@@ -110,7 +111,7 @@ class ConfigEditor extends Page {
                     break;
                 case 'password':
                     if($e) {
-                        $a = new password(ucwords(__(str_replace('_', ' ', $c['property']))), 'conf['.$c['section'].']['.$c['property'].']', '********', null, __($c['description']));
+                        $a = new Password(ucwords(__(str_replace('_', ' ', $c['property']))), 'conf['.$c['section'].']['.$c['property'].']', '********', null, __($c['description']));
                     } else {
                         $a = '<span class="property">'.ucwords(__(str_replace('_', ' ', $c['property']))) .':</span> <span class="value">********</span><span class="description">'.__($c['description']).'</span>';
                     }
@@ -128,7 +129,7 @@ class ConfigEditor extends Page {
                     break;
                 case 'check':
                     if($e) {
-                        $a = new Checkbox(ucwords(__(str_replace('_', ' ', $c['property']))), 'conf['.$c['section'].']['.$c['property'].']', $c['value'], false, __($c['description']));
+                        $a = new Checkbox(ucwords(__(str_replace('_', ' ', $c['property']))), 'conf['.$c['section'].']['.$c['property'].']', $c['value'], $c['value'], false, __($c['description']));
                     }
                     else {
                         $a = '<span class="property">'.ucwords(__(str_replace('_', ' ', $c['property']))) .':</span> <span class="value">'.$c['value'].'</span><span class="description">'.__($c['description']).'</span>';
